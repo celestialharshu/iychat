@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import api from "@/lib/api";
+import api, { saveAuthToken, clearAuthToken } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // on first load, check if a valid session cookie already exists
+  // on first load, check if a valid session (cookie OR stored token) exists
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -26,6 +26,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await api.post("/api/auth/login", { email, password });
+    // store the token ourselves — some mobile browsers (iOS Safari/Chrome)
+    // can silently drop cross-site cookies, so we don't rely on the cookie
+    // alone to keep someone logged in
+    saveAuthToken(res.data.token);
     setUser(res.data);
     return res.data;
   };
@@ -36,12 +40,14 @@ export function AuthProvider({ children }) {
       email,
       password,
     });
+    saveAuthToken(res.data.token);
     setUser(res.data);
     return res.data;
   };
 
   const logout = async () => {
     await api.post("/api/auth/logout");
+    clearAuthToken();
     setUser(null);
   };
 
