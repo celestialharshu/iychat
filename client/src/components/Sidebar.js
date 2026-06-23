@@ -18,6 +18,7 @@ export default function Sidebar({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
   // used to debounce typing, and to ignore responses that arrive out of
   // order (e.g. a slower network returning an earlier, shorter query's
@@ -35,11 +36,13 @@ export default function Sidebar({
     if (!value.trim()) {
       setResults([]);
       setSearching(false);
+      setSearchError(null);
       latestQueryRef.current = "";
       return;
     }
 
     setSearching(true);
+    setSearchError(null);
 
     // wait for a short pause in typing before actually searching, so we
     // don't fire one request per keystroke
@@ -47,13 +50,14 @@ export default function Sidebar({
       const trimmed = value.trim();
       latestQueryRef.current = trimmed;
 
-      const found = await onSearch(trimmed);
+      const { results: found, error } = await onSearch(trimmed);
 
       // only apply these results if this is still the most recent search —
       // if the person kept typing after this request was sent, a newer
       // request is now in flight and its results should win instead
       if (latestQueryRef.current === trimmed) {
         setResults(found);
+        setSearchError(error);
         setSearching(false);
       }
     }, 300);
@@ -119,11 +123,16 @@ export default function Sidebar({
         <div style={styles.resultsList}>
           {searching && <p style={styles.emptyText}>Searching...</p>}
 
-          {!searching && results.length === 0 && (
+          {!searching && searchError && (
+            <p style={styles.errorText}>{searchError}</p>
+          )}
+
+          {!searching && !searchError && results.length === 0 && (
             <p style={styles.emptyText}>No user found</p>
           )}
 
           {!searching &&
+            !searchError &&
             results.map((u) => (
               <button
                 key={u._id}
@@ -283,5 +292,10 @@ const styles = {
     padding: "16px",
     fontSize: "13px",
     color: "var(--text-muted)",
+  },
+  errorText: {
+    padding: "16px",
+    fontSize: "13px",
+    color: "#d32f2f",
   },
 };

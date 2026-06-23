@@ -141,10 +141,19 @@ export default function ChatPage() {
       const res = await api.get("/api/users/search", {
         params: { username },
       });
-      return res.data;
+      return { results: res.data, error: null };
     } catch (err) {
       console.error("Search failed", err);
-      return [];
+      // surface what actually went wrong instead of pretending it was
+      // just an empty result — a 401, CORS failure, or network error
+      // looks identical to "no matches" unless we report it
+      const message =
+        err.response?.status === 401
+          ? "Your session expired — please log in again."
+          : err.message === "Network Error"
+          ? "Network error — check your connection and try again."
+          : err.response?.data?.message || "Search failed. Try again.";
+      return { results: [], error: message };
     }
   }, []);
 
