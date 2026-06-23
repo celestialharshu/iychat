@@ -118,3 +118,15 @@ textarea {
     opacity: 1;
   }
 }
+
+/* message bubbles get more breathing room on narrow phone screens
+   than the 62% desktop max-width would allow */
+.message-bubble {
+  max-width: 62%;
+}
+
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 80%;
+  }
+}

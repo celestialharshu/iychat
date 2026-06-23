@@ -16,8 +16,8 @@ export default function MessageBubble({ message, isOwnMessage }) {
       }}
     >
       <div
+        className="message-bubble"
         style={{
-          maxWidth: "62%",
           padding: "10px 14px",
           borderRadius: isOwnMessage
             ? "16px 16px 4px 16px"

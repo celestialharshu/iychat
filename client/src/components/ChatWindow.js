@@ -11,6 +11,7 @@ export default function ChatWindow({
   isTyping,
   onTyping,
   onStopTyping,
+  onBack,
 }) {
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
@@ -43,6 +44,15 @@ export default function ChatWindow({
   return (
     <div style={styles.container}>
       <div style={styles.header}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={styles.backBtn}
+            aria-label="Back to conversations"
+          >
+            ←
+          </button>
+        )}
         <h3 style={styles.headerTitle}>{selectedUser.username}</h3>
       </div>
 
@@ -109,6 +119,17 @@ const styles = {
   header: {
     padding: "16px",
     borderBottom: "1px solid var(--border)",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  backBtn: {
+    fontSize: "18px",
+    background: "transparent",
+    color: "var(--text)",
+    border: "none",
+    padding: "4px 6px",
+    lineHeight: 1,
   },
   headerTitle: {
     fontSize: "16px",

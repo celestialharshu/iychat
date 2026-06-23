@@ -7,10 +7,12 @@ import api from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import Sidebar from "@/components/Sidebar";
 import ChatWindow from "@/components/ChatWindow";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 export default function ChatPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -195,6 +197,12 @@ export default function ChatPage() {
     router.push("/login");
   };
 
+  // on mobile, the back button just clears the open chat so the
+  // sidebar (conversation list) shows again
+  const handleBackToList = () => {
+    setSelectedUser(null);
+  };
+
   if (loading || !user) {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -203,26 +211,37 @@ export default function ChatPage() {
     );
   }
 
+  // on mobile: show ONLY the sidebar (no chat open) OR ONLY the chat
+  // window (a chat is open) — never both at once, like WhatsApp Web.
+  // on desktop: show both side by side, like before.
+  const showSidebar = !isMobile || !selectedUser;
+  const showChatWindow = !isMobile || !!selectedUser;
+
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar
-        conversations={conversations}
-        selectedUser={selectedUser}
-        onSelectUser={handleSelectUser}
-        onlineUserIds={onlineUserIds}
-        currentUser={user}
-        onLogout={handleLogout}
-        onSearch={handleSearch}
-      />
-      <ChatWindow
-        selectedUser={selectedUser}
-        messages={messages}
-        currentUserId={user._id}
-        onSendMessage={handleSendMessage}
-        isTyping={typingFrom === selectedUser?._id}
-        onTyping={handleTyping}
-        onStopTyping={handleStopTyping}
-      />
+      {showSidebar && (
+        <Sidebar
+          conversations={conversations}
+          selectedUser={selectedUser}
+          onSelectUser={handleSelectUser}
+          onlineUserIds={onlineUserIds}
+          currentUser={user}
+          onLogout={handleLogout}
+          onSearch={handleSearch}
+        />
+      )}
+      {showChatWindow && (
+        <ChatWindow
+          selectedUser={selectedUser}
+          messages={messages}
+          currentUserId={user._id}
+          onSendMessage={handleSendMessage}
+          isTyping={typingFrom === selectedUser?._id}
+          onTyping={handleTyping}
+          onStopTyping={handleStopTyping}
+          onBack={isMobile ? handleBackToList : null}
+        />
+      )}
     </div>
   );
 }

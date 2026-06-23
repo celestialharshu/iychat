@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 export default function Sidebar({
   conversations,
@@ -13,6 +14,7 @@ export default function Sidebar({
   onSearch,
 }) {
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -39,7 +41,13 @@ export default function Sidebar({
   };
 
   return (
-    <div style={styles.sidebar}>
+    <div
+      style={{
+        ...styles.sidebar,
+        width: isMobile ? "100%" : "280px",
+        minWidth: isMobile ? "100%" : "280px",
+      }}
+    >
       <div style={styles.header}>
         <h2 style={styles.logo}>iychat</h2>
         <div style={styles.headerActions}>
