@@ -32,7 +32,41 @@ export default function ChatPage() {
   }, [user, loading, router]);
 
   // NOTE: we intentionally do NOT fetch the full user list anymore.
-  // The sidebar starts empty — people are found only via username search.
+  // The sidebar starts empty for NEW contacts — people are found only via
+  // username search. But anyone we've ever exchanged messages with is
+  // loaded back in below, so those conversations are permanent.
+
+  // load every conversation this user has ever had, as soon as they log in —
+  // this is what makes the sidebar list survive refreshes, logouts, and
+  // logging in on a completely different device
+  useEffect(() => {
+    if (!user) return;
+
+    const loadConversations = async () => {
+      try {
+        const res = await api.get("/api/messages/conversations");
+
+        setConversations(
+          res.data.map((c) => ({
+            _id: c._id,
+            username: c.username,
+            email: c.email,
+            avatar: c.avatar,
+          }))
+        );
+
+        const counts = {};
+        res.data.forEach((c) => {
+          if (c.unreadCount > 0) counts[c._id] = c.unreadCount;
+        });
+        setUnreadCounts(counts);
+      } catch (err) {
+        console.error("Failed to load conversations", err);
+      }
+    };
+
+    loadConversations();
+  }, [user]);
 
   // set up the socket connection once
   useEffect(() => {
