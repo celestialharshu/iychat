@@ -12,7 +12,7 @@ export default function ChatPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
 
-  const [users, setUsers] = useState([]);
+  const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
@@ -28,21 +28,8 @@ export default function ChatPage() {
     }
   }, [user, loading, router]);
 
-  // fetch the list of other users once logged in
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchUsers = async () => {
-      try {
-        const res = await api.get("/api/users");
-        setUsers(res.data);
-      } catch (err) {
-        console.error("Failed to load users", err);
-      }
-    };
-
-    fetchUsers();
-  }, [user]);
+  // NOTE: we intentionally do NOT fetch the full user list anymore.
+  // The sidebar starts empty — people are found only via username search.
 
   // set up the socket connection once
   useEffect(() => {
@@ -65,6 +52,26 @@ export default function ChatPage() {
           message.receiver === selectedUserRef.current?._id;
         if (!belongsToOpenChat) return prev;
         return [...prev, message];
+      });
+
+      // if this sender isn't in the sidebar yet (they messaged us first,
+      // before we ever searched for them), fetch their profile and add them
+      setConversations((prev) => {
+        const alreadyThere = prev.some((u) => u._id === message.sender);
+        if (alreadyThere) return prev;
+
+        api
+          .get(`/api/users/${message.sender}`)
+          .then((res) => {
+            setConversations((current) => {
+              const exists = current.some((u) => u._id === res.data._id);
+              if (exists) return current;
+              return [res.data, ...current];
+            });
+          })
+          .catch((err) => console.error("Failed to load sender profile", err));
+
+        return prev;
       });
     });
 
@@ -109,12 +116,33 @@ export default function ChatPage() {
     setSelectedUser(otherUser);
     setTypingFrom(null);
 
+    // remember this person in the sidebar so the chat doesn't disappear
+    // once the search box is cleared
+    setConversations((prev) => {
+      const alreadyThere = prev.some((u) => u._id === otherUser._id);
+      if (alreadyThere) return prev;
+      return [otherUser, ...prev];
+    });
+
     try {
       const res = await api.get(`/api/messages/${otherUser._id}`);
       setMessages(res.data);
     } catch (err) {
       console.error("Failed to load messages", err);
       setMessages([]);
+    }
+  }, []);
+
+  // called by the Sidebar search box — looks up users by username
+  const handleSearch = useCallback(async (username) => {
+    try {
+      const res = await api.get("/api/users/search", {
+        params: { username },
+      });
+      return res.data;
+    } catch (err) {
+      console.error("Search failed", err);
+      return [];
     }
   }, []);
 
@@ -178,12 +206,13 @@ export default function ChatPage() {
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       <Sidebar
-        users={users}
+        conversations={conversations}
         selectedUser={selectedUser}
         onSelectUser={handleSelectUser}
         onlineUserIds={onlineUserIds}
         currentUser={user}
         onLogout={handleLogout}
+        onSearch={handleSearch}
       />
       <ChatWindow
         selectedUser={selectedUser}

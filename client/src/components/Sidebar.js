@@ -1,13 +1,41 @@
 "use client";
 
+import { useState } from "react";
+
 export default function Sidebar({
-  users,
+  conversations,
   selectedUser,
   onSelectUser,
   onlineUserIds,
   currentUser,
   onLogout,
+  onSearch,
 }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  const handleChange = async (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (!value.trim()) {
+      setResults([]);
+      return;
+    }
+
+    setSearching(true);
+    const found = await onSearch(value.trim());
+    setResults(found);
+    setSearching(false);
+  };
+
+  const handlePick = (u) => {
+    onSelectUser(u);
+    setQuery("");
+    setResults([]);
+  };
+
   return (
     <div style={styles.sidebar}>
       <div style={styles.header}>
@@ -21,12 +49,47 @@ export default function Sidebar({
         Signed in as <strong>{currentUser?.username}</strong>
       </p>
 
+      <div style={styles.searchBox}>
+        <input
+          type="text"
+          value={query}
+          onChange={handleChange}
+          placeholder="Search username..."
+          style={styles.searchInput}
+        />
+      </div>
+
+      {/* search results dropdown — only shows while typing */}
+      {query.trim() && (
+        <div style={styles.resultsList}>
+          {searching && <p style={styles.emptyText}>Searching...</p>}
+
+          {!searching && results.length === 0 && (
+            <p style={styles.emptyText}>No user found</p>
+          )}
+
+          {!searching &&
+            results.map((u) => (
+              <button
+                key={u._id}
+                onClick={() => handlePick(u)}
+                style={styles.resultItem}
+              >
+                {u.username}
+              </button>
+            ))}
+        </div>
+      )}
+
+      {/* conversations you've already opened, so they don't disappear after searching */}
       <div style={styles.userList}>
-        {users.length === 0 && (
-          <p style={styles.emptyText}>No other users yet</p>
+        {conversations.length === 0 && (
+          <p style={styles.emptyText}>
+            Search a username above to start a chat
+          </p>
         )}
 
-        {users.map((u) => {
+        {conversations.map((u) => {
           const isOnline = onlineUserIds.includes(u._id);
           const isSelected = selectedUser?._id === u._id;
 
@@ -91,6 +154,34 @@ const styles = {
     padding: "10px 16px",
     borderBottom: "1px solid #000000",
     color: "#000000",
+  },
+  searchBox: {
+    padding: "12px 16px",
+    borderBottom: "1px solid #000000",
+  },
+  searchInput: {
+    width: "100%",
+    padding: "10px",
+    border: "1px solid #000000",
+    background: "#ffffff",
+    color: "#000000",
+    fontSize: "14px",
+    outline: "none",
+  },
+  resultsList: {
+    borderBottom: "1px solid #000000",
+    maxHeight: "200px",
+    overflowY: "auto",
+  },
+  resultItem: {
+    width: "100%",
+    textAlign: "left",
+    padding: "12px 16px",
+    border: "none",
+    borderBottom: "1px solid #e0e0e0",
+    background: "#ffffff",
+    color: "#000000",
+    fontSize: "14px",
   },
   userList: {
     flex: 1,
