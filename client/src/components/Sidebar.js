@@ -12,6 +12,7 @@ export default function Sidebar({
   currentUser,
   onLogout,
   onSearch,
+  unreadCounts = {},
 }) {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
@@ -156,6 +157,7 @@ export default function Sidebar({
         {conversations.map((u) => {
           const isOnline = onlineUserIds.includes(u._id);
           const isSelected = selectedUser?._id === u._id;
+          const unreadCount = unreadCounts[u._id] || 0;
 
           return (
             <button
@@ -176,8 +178,33 @@ export default function Sidebar({
                       : "var(--accent-offline)",
                   }}
                 />
-                {u.username}
+                <span
+                  style={{
+                    fontWeight: unreadCount > 0 ? "700" : "400",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {u.username}
+                </span>
               </span>
+
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    ...styles.unreadBadge,
+                    background: isSelected
+                      ? "var(--bubble-sent-text)"
+                      : "var(--bubble-sent-bg)",
+                    color: isSelected
+                      ? "var(--bubble-sent-bg)"
+                      : "var(--bubble-sent-text)",
+                  }}
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -276,11 +303,28 @@ const styles = {
     border: "none",
     borderBottom: "1px solid var(--border)",
     fontSize: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
   },
   userItemLeft: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+    overflow: "hidden",
+  },
+  unreadBadge: {
+    minWidth: "20px",
+    height: "20px",
+    borderRadius: "10px",
+    fontSize: "11px",
+    fontWeight: "700",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 6px",
+    flexShrink: 0,
   },
   statusDot: {
     width: "8px",

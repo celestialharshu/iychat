@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [typingFrom, setTypingFrom] = useState(null);
+  const [unreadCounts, setUnreadCounts] = useState({}); // { [userId]: count }
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -47,6 +48,8 @@ export default function ChatPage() {
     });
 
     socket.on("receive_message", (message) => {
+      const isOpenChat = message.sender === selectedUserRef.current?._id;
+
       setMessages((prev) => {
         // only append if this message belongs to the open conversation
         const belongsToOpenChat =
@@ -54,6 +57,26 @@ export default function ChatPage() {
           message.receiver === selectedUserRef.current?._id;
         if (!belongsToOpenChat) return prev;
         return [...prev, message];
+      });
+
+      // bump the unread badge for this sender, unless their chat is the
+      // one currently open (in that case there's nothing "unread" about it)
+      if (!isOpenChat) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [message.sender]: (prev[message.sender] || 0) + 1,
+        }));
+      }
+
+      // move this sender to the top of the sidebar list — newest activity
+      // surfaces first, same as most chat apps
+      setConversations((prev) => {
+        const existing = prev.find((u) => u._id === message.sender);
+        if (existing) {
+          const rest = prev.filter((u) => u._id !== message.sender);
+          return [existing, ...rest];
+        }
+        return prev;
       });
 
       // if this sender isn't in the sidebar yet (they messaged us first,
@@ -118,12 +141,20 @@ export default function ChatPage() {
     setSelectedUser(otherUser);
     setTypingFrom(null);
 
-    // remember this person in the sidebar so the chat doesn't disappear
-    // once the search box is cleared
+    // opening a chat clears its unread badge
+    setUnreadCounts((prev) => {
+      if (!prev[otherUser._id]) return prev;
+      const updated = { ...prev };
+      delete updated[otherUser._id];
+      return updated;
+    });
+
+    // remember this person in the sidebar (and bring them to the top)
+    // so the chat doesn't disappear once the search box is cleared
     setConversations((prev) => {
-      const alreadyThere = prev.some((u) => u._id === otherUser._id);
-      if (alreadyThere) return prev;
-      return [otherUser, ...prev];
+      const existing = prev.find((u) => u._id === otherUser._id);
+      const rest = prev.filter((u) => u._id !== otherUser._id);
+      return [existing || otherUser, ...rest];
     });
 
     try {
@@ -237,6 +268,7 @@ export default function ChatPage() {
           currentUser={user}
           onLogout={handleLogout}
           onSearch={handleSearch}
+          unreadCounts={unreadCounts}
         />
       )}
       {showChatWindow && (
