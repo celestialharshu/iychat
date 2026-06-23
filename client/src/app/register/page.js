@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
   const [username, setUsername] = useState("");
@@ -32,6 +34,15 @@ export default function RegisterPage() {
 
   return (
     <div style={styles.page}>
+      <button
+        onClick={toggleTheme}
+        style={styles.themeToggle}
+        aria-label="Toggle dark mode"
+        title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+      >
+        {theme === "light" ? "🌙" : "☀️"}
+      </button>
+
       <form onSubmit={handleSubmit} style={styles.form}>
         <h1 style={styles.title}>iychat</h1>
         <p style={styles.subtitle}>Create an account</p>
@@ -86,62 +97,82 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#ffffff",
+    background: "var(--bg)",
+    position: "relative",
+  },
+  themeToggle: {
+    position: "absolute",
+    top: "20px",
+    right: "20px",
+    fontSize: "14px",
+    background: "var(--surface)",
+    color: "var(--text)",
+    border: "1px solid var(--border)",
+    padding: "8px 11px",
+    borderRadius: "8px",
+    lineHeight: 1,
   },
   form: {
     width: "100%",
     maxWidth: "360px",
     padding: "32px",
-    border: "1px solid #000000",
+    border: "1px solid var(--border)",
+    borderRadius: "14px",
+    boxShadow: "var(--shadow-md)",
     display: "flex",
     flexDirection: "column",
     gap: "12px",
+    background: "var(--surface)",
   },
   title: {
     fontSize: "28px",
     fontWeight: "700",
-    color: "#000000",
+    color: "var(--text)",
     textAlign: "center",
   },
   subtitle: {
     fontSize: "14px",
-    color: "#000000",
+    color: "var(--text-muted)",
     textAlign: "center",
     marginBottom: "8px",
   },
   input: {
     padding: "12px",
-    border: "1px solid #000000",
-    background: "#ffffff",
-    color: "#000000",
+    border: "1px solid var(--input-border)",
+    background: "var(--input-bg)",
+    color: "var(--text)",
     fontSize: "14px",
     outline: "none",
+    borderRadius: "8px",
   },
   button: {
     padding: "12px",
-    background: "#000000",
-    color: "#ffffff",
+    background: "var(--bubble-sent-bg)",
+    color: "var(--bubble-sent-text)",
     border: "none",
     fontSize: "14px",
     fontWeight: "600",
     marginTop: "8px",
+    borderRadius: "8px",
   },
   error: {
-    color: "#000000",
-    background: "#f0f0f0",
-    border: "1px solid #000000",
+    color: "var(--text)",
+    background: "var(--bubble-received-bg)",
+    border: "1px solid var(--border)",
     padding: "8px",
     fontSize: "13px",
     textAlign: "center",
+    borderRadius: "8px",
   },
   footerText: {
     fontSize: "13px",
     textAlign: "center",
-    color: "#000000",
+    color: "var(--text-muted)",
     marginTop: "8px",
   },
   link: {
     fontWeight: "700",
     textDecoration: "underline",
+    color: "var(--text)",
   },
 };

@@ -20,8 +20,8 @@ export default function Home() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#ffffff",
-        color: "#000000",
+        background: "var(--bg)",
+        color: "var(--text)",
       }}
     >
       <p>Loading iychat...</p>

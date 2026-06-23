@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Sidebar({
   conversations,
@@ -11,6 +12,7 @@ export default function Sidebar({
   onLogout,
   onSearch,
 }) {
+  const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -40,9 +42,19 @@ export default function Sidebar({
     <div style={styles.sidebar}>
       <div style={styles.header}>
         <h2 style={styles.logo}>iychat</h2>
-        <button onClick={onLogout} style={styles.logoutBtn}>
-          Log out
-        </button>
+        <div style={styles.headerActions}>
+          <button
+            onClick={toggleTheme}
+            style={styles.themeBtn}
+            aria-label="Toggle dark mode"
+            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
+          <button onClick={onLogout} style={styles.logoutBtn}>
+            Log out
+          </button>
+        </div>
       </div>
 
       <p style={styles.currentUserLabel}>
@@ -99,15 +111,17 @@ export default function Sidebar({
               onClick={() => onSelectUser(u)}
               style={{
                 ...styles.userItem,
-                background: isSelected ? "#000000" : "#ffffff",
-                color: isSelected ? "#ffffff" : "#000000",
+                background: isSelected ? "var(--bubble-sent-bg)" : "var(--surface)",
+                color: isSelected ? "var(--bubble-sent-text)" : "var(--text)",
               }}
             >
               <span style={styles.userItemLeft}>
                 <span
                   style={{
                     ...styles.statusDot,
-                    background: isOnline ? "#00c853" : "#bdbdbd",
+                    background: isOnline
+                      ? "var(--accent-online)"
+                      : "var(--accent-offline)",
                   }}
                 />
                 {u.username}
@@ -125,51 +139,67 @@ const styles = {
     width: "280px",
     minWidth: "280px",
     height: "100vh",
-    borderRight: "1px solid #000000",
+    borderRight: "1px solid var(--border)",
     display: "flex",
     flexDirection: "column",
-    background: "#ffffff",
+    background: "var(--surface)",
   },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "16px",
-    borderBottom: "1px solid #000000",
+    borderBottom: "1px solid var(--border)",
   },
   logo: {
     fontSize: "20px",
     fontWeight: "700",
-    color: "#000000",
+    color: "var(--text)",
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  themeBtn: {
+    fontSize: "14px",
+    background: "var(--surface)",
+    color: "var(--text)",
+    border: "1px solid var(--border)",
+    padding: "6px 9px",
+    borderRadius: "8px",
+    lineHeight: 1,
   },
   logoutBtn: {
     fontSize: "12px",
-    background: "#ffffff",
-    color: "#000000",
-    border: "1px solid #000000",
+    background: "var(--surface)",
+    color: "var(--text)",
+    border: "1px solid var(--border)",
     padding: "6px 10px",
+    borderRadius: "8px",
   },
   currentUserLabel: {
     fontSize: "13px",
     padding: "10px 16px",
-    borderBottom: "1px solid #000000",
-    color: "#000000",
+    borderBottom: "1px solid var(--border)",
+    color: "var(--text)",
   },
   searchBox: {
     padding: "12px 16px",
-    borderBottom: "1px solid #000000",
+    borderBottom: "1px solid var(--border)",
   },
   searchInput: {
     width: "100%",
     padding: "10px",
-    border: "1px solid #000000",
-    background: "#ffffff",
-    color: "#000000",
+    border: "1px solid var(--input-border)",
+    background: "var(--input-bg)",
+    color: "var(--text)",
     fontSize: "14px",
     outline: "none",
+    borderRadius: "8px",
   },
   resultsList: {
-    borderBottom: "1px solid #000000",
+    borderBottom: "1px solid var(--border)",
     maxHeight: "200px",
     overflowY: "auto",
   },
@@ -178,9 +208,9 @@ const styles = {
     textAlign: "left",
     padding: "12px 16px",
     border: "none",
-    borderBottom: "1px solid #e0e0e0",
-    background: "#ffffff",
-    color: "#000000",
+    borderBottom: "1px solid var(--border)",
+    background: "var(--surface)",
+    color: "var(--text)",
     fontSize: "14px",
   },
   userList: {
@@ -192,7 +222,7 @@ const styles = {
     textAlign: "left",
     padding: "14px 16px",
     border: "none",
-    borderBottom: "1px solid #000000",
+    borderBottom: "1px solid var(--border)",
     fontSize: "14px",
   },
   userItemLeft: {
@@ -209,6 +239,6 @@ const styles = {
   emptyText: {
     padding: "16px",
     fontSize: "13px",
-    color: "#666666",
+    color: "var(--text-muted)",
   },
 };

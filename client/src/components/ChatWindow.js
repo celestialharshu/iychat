@@ -61,7 +61,13 @@ export default function ChatWindow({
           />
         ))}
 
-        {isTyping && <p style={styles.typingText}>typing...</p>}
+        {isTyping && (
+          <div style={styles.typingBubble}>
+            <span style={{ ...styles.typingDot, animationDelay: "0s" }} />
+            <span style={{ ...styles.typingDot, animationDelay: "0.15s" }} />
+            <span style={{ ...styles.typingDot, animationDelay: "0.3s" }} />
+          </div>
+        )}
 
         <div ref={bottomRef} />
       </div>
@@ -88,7 +94,7 @@ const styles = {
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    background: "#ffffff",
+    background: "var(--bg)",
   },
   placeholder: {
     flex: 1,
@@ -96,17 +102,18 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#666666",
+    color: "var(--text-muted)",
     fontSize: "14px",
+    background: "var(--bg)",
   },
   header: {
     padding: "16px",
-    borderBottom: "1px solid #000000",
+    borderBottom: "1px solid var(--border)",
   },
   headerTitle: {
     fontSize: "16px",
     fontWeight: "700",
-    color: "#000000",
+    color: "var(--text)",
   },
   messages: {
     flex: 1,
@@ -114,38 +121,53 @@ const styles = {
     padding: "20px",
   },
   emptyText: {
-    color: "#666666",
+    color: "var(--text-muted)",
     fontSize: "13px",
     textAlign: "center",
     marginTop: "20px",
   },
-  typingText: {
-    fontSize: "12px",
-    color: "#666666",
-    fontStyle: "italic",
-    marginTop: "4px",
+  typingBubble: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "10px 14px",
+    borderRadius: "16px 16px 16px 4px",
+    background: "var(--bubble-received-bg)",
+    border: "1px solid var(--bubble-received-border)",
+    width: "fit-content",
+    marginTop: "2px",
+  },
+  typingDot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "var(--text-muted)",
+    display: "inline-block",
+    animation: "typingDot 1.1s infinite ease-in-out",
   },
   inputBar: {
     display: "flex",
     gap: "10px",
     padding: "16px",
-    borderTop: "1px solid #000000",
+    borderTop: "1px solid var(--border)",
   },
   input: {
     flex: 1,
     padding: "12px",
-    border: "1px solid #000000",
-    background: "#ffffff",
-    color: "#000000",
+    border: "1px solid var(--input-border)",
+    background: "var(--input-bg)",
+    color: "var(--text)",
     fontSize: "14px",
     outline: "none",
+    borderRadius: "10px",
   },
   sendBtn: {
     padding: "12px 20px",
-    background: "#000000",
-    color: "#ffffff",
+    background: "var(--bubble-sent-bg)",
+    color: "var(--bubble-sent-text)",
     border: "none",
     fontSize: "14px",
     fontWeight: "600",
+    borderRadius: "10px",
   },
 };

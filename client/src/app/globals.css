@@ -1,3 +1,55 @@
+/* ===========================================================
+   Theme tokens
+   Light mode = the original black & white look, slightly
+   softened. Dark mode = a real dark palette, not an inverted
+   filter — separate tones for background, surface, and bubbles.
+   =========================================================== */
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --text-muted: #6b6b6b;
+  --border: #1a1a1a;
+  --surface: #ffffff;
+
+  --bubble-sent-bg: #111111;
+  --bubble-sent-text: #ffffff;
+  --bubble-received-bg: #f4f4f4;
+  --bubble-received-text: #111111;
+  --bubble-received-border: #e2e2e2;
+
+  --input-bg: #ffffff;
+  --input-border: #1a1a1a;
+
+  --accent-online: #1fb15f;
+  --accent-offline: #b9b9b9;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] {
+  --bg: #0d0d0f;
+  --text: #efefef;
+  --text-muted: #9a9a9a;
+  --border: #2a2a2e;
+  --surface: #161618;
+
+  --bubble-sent-bg: #4f5dff;
+  --bubble-sent-text: #ffffff;
+  --bubble-received-bg: #1f1f22;
+  --bubble-received-text: #efefef;
+  --bubble-received-border: #2a2a2e;
+
+  --input-bg: #1a1a1c;
+  --input-border: #333336;
+
+  --accent-online: #36d278;
+  --accent-offline: #5a5a5e;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,10 +58,11 @@
 
 html,
 body {
-  background: #ffffff;
-  color: #000000;
+  background: var(--bg);
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 a {
@@ -33,10 +86,35 @@ textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #ffffff;
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #000000;
+  background: var(--border);
   border-radius: 10px;
+}
+
+/* message bubble entrance animation */
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes typingDot {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
