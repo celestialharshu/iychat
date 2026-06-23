@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/lib/useIsMobile";
 
@@ -19,25 +19,56 @@ export default function Sidebar({
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
-  const handleChange = async (e) => {
+  // used to debounce typing, and to ignore responses that arrive out of
+  // order (e.g. a slower network returning an earlier, shorter query's
+  // empty result AFTER a later, correct query already resolved)
+  const debounceRef = useRef(null);
+  const latestQueryRef = useRef("");
+
+  const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
 
+    // cancel any pending debounced search — we'll start a fresh one below
+    clearTimeout(debounceRef.current);
+
     if (!value.trim()) {
       setResults([]);
+      setSearching(false);
+      latestQueryRef.current = "";
       return;
     }
 
     setSearching(true);
-    const found = await onSearch(value.trim());
-    setResults(found);
-    setSearching(false);
+
+    // wait for a short pause in typing before actually searching, so we
+    // don't fire one request per keystroke
+    debounceRef.current = setTimeout(async () => {
+      const trimmed = value.trim();
+      latestQueryRef.current = trimmed;
+
+      const found = await onSearch(trimmed);
+
+      // only apply these results if this is still the most recent search —
+      // if the person kept typing after this request was sent, a newer
+      // request is now in flight and its results should win instead
+      if (latestQueryRef.current === trimmed) {
+        setResults(found);
+        setSearching(false);
+      }
+    }, 300);
   };
+
+  // clear any pending debounce timer if the component unmounts mid-search
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current);
+  }, []);
 
   const handlePick = (u) => {
     onSelectUser(u);
     setQuery("");
     setResults([]);
+    latestQueryRef.current = "";
   };
 
   return (
@@ -76,6 +107,10 @@ export default function Sidebar({
           onChange={handleChange}
           placeholder="Search username..."
           style={styles.searchInput}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck="false"
         />
       </div>
 
