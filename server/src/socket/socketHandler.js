@@ -44,7 +44,10 @@ function initSocket(io) {
     });
 
     socket.on("disconnect", () => {
-      if (socket.userId) {
+      // only remove the map entry if it still points at THIS socket —
+      // if the user already reconnected with a new socket id before this
+      // disconnect event fired, we must not delete their new entry
+      if (socket.userId && onlineUsers.get(socket.userId) === socket.id) {
         onlineUsers.delete(socket.userId);
         io.emit("online_users", Array.from(onlineUsers.keys()));
       }
