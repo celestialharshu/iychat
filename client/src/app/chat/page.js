@@ -77,6 +77,22 @@ export default function ChatPage() {
 
     socket.emit("user_online", user._id);
 
+    // TEMPORARY DIAGNOSTIC LOGGING
+    console.log("[iychat debug] socket setup running. connected?", socket.connected, "id:", socket.id);
+    socket.on("connect", () => {
+      console.log("[iychat debug] socket CONNECTED. id:", socket.id);
+      // re-announce presence after every (re)connect, including automatic
+      // reconnects after the server was asleep/idle — otherwise the server
+      // has no idea this socket belongs to this user anymore
+      socket.emit("user_online", user._id);
+    });
+    socket.on("disconnect", (reason) => {
+      console.log("[iychat debug] socket DISCONNECTED. reason:", reason);
+    });
+    socket.on("connect_error", (err) => {
+      console.log("[iychat debug] socket CONNECT ERROR:", err.message);
+    });
+
     socket.on("online_users", (ids) => {
       setOnlineUserIds(ids);
     });
@@ -155,6 +171,9 @@ export default function ChatPage() {
     });
 
     return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
       socket.off("online_users");
       socket.off("receive_message");
       socket.off("message_sent");
@@ -226,6 +245,12 @@ export default function ChatPage() {
     async (text) => {
       if (!selectedUser) return;
 
+      // TEMPORARY DIAGNOSTIC LOGGING — helps us see exactly what's happening
+      // with the socket connection when a message is sent. Safe to remove
+      // once the real-time bug is confirmed fixed.
+      console.log("[iychat debug] sending message. socket connected?", socketRef.current?.connected);
+      console.log("[iychat debug] socket id:", socketRef.current?.id);
+
       try {
         const res = await api.post(`/api/messages/${selectedUser._id}`, {
           text,
@@ -233,11 +258,15 @@ export default function ChatPage() {
 
         const savedMessage = res.data;
 
+        console.log("[iychat debug] message saved to DB:", savedMessage._id);
+
         socketRef.current?.emit("send_message", {
           ...savedMessage,
           sender: user._id,
           receiver: selectedUser._id,
         });
+
+        console.log("[iychat debug] emitted send_message over socket");
       } catch (err) {
         console.error("Failed to send message", err);
       }
