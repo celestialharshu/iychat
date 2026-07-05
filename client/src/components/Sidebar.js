@@ -13,6 +13,9 @@ export default function Sidebar({
   onLogout,
   onSearch,
   unreadCounts = {},
+  notificationCount = 0,
+  onBellClick,
+  onProfileCardOpen,
 }) {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
@@ -21,17 +24,12 @@ export default function Sidebar({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
 
-  // used to debounce typing, and to ignore responses that arrive out of
-  // order (e.g. a slower network returning an earlier, shorter query's
-  // empty result AFTER a later, correct query already resolved)
   const debounceRef = useRef(null);
   const latestQueryRef = useRef("");
 
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-
-    // cancel any pending debounced search — we'll start a fresh one below
     clearTimeout(debounceRef.current);
 
     if (!value.trim()) {
@@ -45,17 +43,12 @@ export default function Sidebar({
     setSearching(true);
     setSearchError(null);
 
-    // wait for a short pause in typing before actually searching, so we
-    // don't fire one request per keystroke
     debounceRef.current = setTimeout(async () => {
       const trimmed = value.trim();
       latestQueryRef.current = trimmed;
 
       const { results: found, error } = await onSearch(trimmed);
 
-      // only apply these results if this is still the most recent search —
-      // if the person kept typing after this request was sent, a newer
-      // request is now in flight and its results should win instead
       if (latestQueryRef.current === trimmed) {
         setResults(found);
         setSearchError(error);
@@ -64,16 +57,16 @@ export default function Sidebar({
     }, 300);
   };
 
-  // clear any pending debounce timer if the component unmounts mid-search
   useEffect(() => {
     return () => clearTimeout(debounceRef.current);
   }, []);
 
-  const handlePick = (u) => {
-    onSelectUser(u);
+  // clicking a search result opens the profile card, not chat directly
+  const handleResultClick = (u) => {
     setQuery("");
     setResults([]);
     latestQueryRef.current = "";
+    onProfileCardOpen(u);
   };
 
   return (
@@ -89,12 +82,30 @@ export default function Sidebar({
         <div style={styles.headerActions}>
           <button
             onClick={toggleTheme}
-            style={styles.themeBtn}
+            style={styles.iconBtn}
             aria-label="Toggle dark mode"
-            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            title={theme === "light" ? "Dark mode" : "Light mode"}
           >
             {theme === "light" ? "🌙" : "☀️"}
           </button>
+
+          {/* notification bell with unread badge */}
+          <button
+            onClick={onBellClick}
+            style={styles.iconBtn}
+            aria-label="Notifications"
+            title="Follow requests"
+          >
+            <span style={styles.bellWrap}>
+              🔔
+              {notificationCount > 0 && (
+                <span style={styles.badge}>
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
+            </span>
+          </button>
+
           <button onClick={onLogout} style={styles.logoutBtn}>
             Log out
           </button>
@@ -110,7 +121,7 @@ export default function Sidebar({
           type="text"
           value={query}
           onChange={handleChange}
-          placeholder="Search username..."
+          placeholder="Search username…"
           style={styles.searchInput}
           autoCapitalize="none"
           autoCorrect="off"
@@ -119,10 +130,9 @@ export default function Sidebar({
         />
       </div>
 
-      {/* search results dropdown — only shows while typing */}
       {query.trim() && (
         <div style={styles.resultsList}>
-          {searching && <p style={styles.emptyText}>Searching...</p>}
+          {searching && <p style={styles.emptyText}>Searching…</p>}
 
           {!searching && searchError && (
             <p style={styles.errorText}>{searchError}</p>
@@ -137,7 +147,7 @@ export default function Sidebar({
             results.map((u) => (
               <button
                 key={u._id}
-                onClick={() => handlePick(u)}
+                onClick={() => handleResultClick(u)}
                 style={styles.resultItem}
               >
                 {u.username}
@@ -146,7 +156,6 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* conversations you've already opened, so they don't disappear after searching */}
       <div style={styles.userList}>
         {conversations.length === 0 && (
           <p style={styles.emptyText}>
@@ -165,8 +174,12 @@ export default function Sidebar({
               onClick={() => onSelectUser(u)}
               style={{
                 ...styles.userItem,
-                background: isSelected ? "var(--bubble-sent-bg)" : "var(--surface)",
-                color: isSelected ? "var(--bubble-sent-text)" : "var(--text)",
+                background: isSelected
+                  ? "var(--bubble-sent-bg)"
+                  : "var(--surface)",
+                color: isSelected
+                  ? "var(--bubble-sent-text)"
+                  : "var(--text)",
               }}
             >
               <span style={styles.userItemLeft}>
@@ -238,16 +251,39 @@ const styles = {
   headerActions: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "6px",
   },
-  themeBtn: {
+  iconBtn: {
     fontSize: "14px",
     background: "var(--surface)",
     color: "var(--text)",
     border: "1px solid var(--border)",
-    padding: "6px 9px",
+    padding: "6px 8px",
     borderRadius: "8px",
     lineHeight: 1,
+    cursor: "pointer",
+    position: "relative",
+  },
+  bellWrap: {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: "-8px",
+    right: "-10px",
+    background: "#e53e3e",
+    color: "#fff",
+    fontSize: "9px",
+    fontWeight: "800",
+    borderRadius: "10px",
+    minWidth: "16px",
+    height: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 3px",
   },
   logoutBtn: {
     fontSize: "12px",
@@ -256,6 +292,7 @@ const styles = {
     border: "1px solid var(--border)",
     padding: "6px 10px",
     borderRadius: "8px",
+    cursor: "pointer",
   },
   currentUserLabel: {
     fontSize: "13px",
@@ -291,6 +328,7 @@ const styles = {
     background: "var(--surface)",
     color: "var(--text)",
     fontSize: "14px",
+    cursor: "pointer",
   },
   userList: {
     flex: 1,
@@ -307,12 +345,20 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "10px",
+    cursor: "pointer",
   },
   userItemLeft: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
     overflow: "hidden",
+  },
+  statusDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    display: "inline-block",
+    flexShrink: 0,
   },
   unreadBadge: {
     minWidth: "20px",
@@ -325,12 +371,6 @@ const styles = {
     justifyContent: "center",
     padding: "0 6px",
     flexShrink: 0,
-  },
-  statusDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    display: "inline-block",
   },
   emptyText: {
     padding: "16px",
