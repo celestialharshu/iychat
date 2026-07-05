@@ -1,34 +1,37 @@
-// Keeps track of which socket id belongs to which user id.
-// This lets us send a message straight to a specific person instead of
-// broadcasting it to everyone connected to the server.
 const onlineUsers = new Map(); // userId -> socketId
 
 function initSocket(io) {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    // client tells the server which user just logged in / opened the app
     socket.on("user_online", (userId) => {
       if (!userId) return;
       onlineUsers.set(userId, socket.id);
       socket.userId = userId;
-
-      // let everyone know the updated online list
       io.emit("online_users", Array.from(onlineUsers.keys()));
     });
 
-    // sending a chat message in real time
     socket.on("send_message", (message) => {
       const receiverSocketId = onlineUsers.get(message.receiver);
-
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("receive_message", message);
       }
-      // echo back to sender so their own UI updates too (covers multi-tab use)
+      // echo back to sender so their own bubble appears immediately
       socket.emit("message_sent", message);
     });
 
-    // typing indicator
+    // fired by the receiver's client when they open a conversation —
+    // tells the sender their messages were just seen in real time
+    socket.on("mark_read", ({ senderId, readAt }) => {
+      const senderSocketId = onlineUsers.get(senderId);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messages_read", {
+          readBy: socket.userId,
+          readAt,
+        });
+      }
+    });
+
     socket.on("typing", ({ senderId, receiverId }) => {
       const receiverSocketId = onlineUsers.get(receiverId);
       if (receiverSocketId) {
@@ -44,9 +47,6 @@ function initSocket(io) {
     });
 
     socket.on("disconnect", () => {
-      // only remove the map entry if it still points at THIS socket —
-      // if the user already reconnected with a new socket id before this
-      // disconnect event fired, we must not delete their new entry
       if (socket.userId && onlineUsers.get(socket.userId) === socket.id) {
         onlineUsers.delete(socket.userId);
         io.emit("online_users", Array.from(onlineUsers.keys()));
@@ -56,4 +56,6 @@ function initSocket(io) {
   });
 }
 
-module.exports = initSocket;
+// exported so messageController can look up socket ids when marking
+// messages as read via the REST endpoint
+module.exports = { initSocket, onlineUsers };

@@ -1,24 +1,23 @@
 const mongoose = require("mongoose");
 const Message = require("../models/Message");
 
+// this is imported lazily to avoid a circular dependency between app.js
+// and socket setup — we attach the io instance after the server starts
+let _io = null;
+const setIO = (io) => { _io = io; };
+
 // @route GET /api/messages/conversations
-// returns every person the logged-in user has ever exchanged messages
-// with, along with their last message and how many are unread —
-// this is what makes the sidebar list permanent across logins/devices
 const getConversations = async (req, res) => {
   try {
     const myId = new mongoose.Types.ObjectId(req.user._id);
 
     const conversations = await Message.aggregate([
-      // only messages this user sent or received
       {
         $match: {
           $or: [{ sender: myId }, { receiver: myId }],
         },
       },
-      // newest message first, so $first below grabs the latest one
       { $sort: { createdAt: -1 } },
-      // figure out who "the other person" is on each message
       {
         $addFields: {
           otherUser: {
@@ -26,7 +25,6 @@ const getConversations = async (req, res) => {
           },
         },
       },
-      // collapse all messages down to one entry per other person
       {
         $group: {
           _id: "$otherUser",
@@ -34,7 +32,6 @@ const getConversations = async (req, res) => {
           lastMessageAt: { $first: "$createdAt" },
           unreadCount: {
             $sum: {
-              // only messages THEY sent to ME that I haven't read count as unread
               $cond: [
                 {
                   $and: [
@@ -49,9 +46,7 @@ const getConversations = async (req, res) => {
           },
         },
       },
-      // most recently active conversation first
       { $sort: { lastMessageAt: -1 } },
-      // attach that user's public profile info
       {
         $lookup: {
           from: "users",
@@ -81,7 +76,6 @@ const getConversations = async (req, res) => {
 };
 
 // @route GET /api/messages/:userId
-// fetch full conversation history between the logged-in user and :userId
 const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -94,12 +88,25 @@ const getMessages = async (req, res) => {
       ],
     }).sort({ createdAt: 1 });
 
-    // mark messages from the other person as read, since we're now
-    // opening this conversation and viewing them
+    // mark unread messages from the other person as read and record when
+    const now = new Date();
     await Message.updateMany(
       { sender: userId, receiver: myId, isRead: false },
-      { $set: { isRead: true } }
+      { $set: { isRead: true, readAt: now } }
     );
+
+    // tell the sender in real time that their messages were just seen,
+    // so their "Seen X ago" label updates without them needing to reload
+    if (_io) {
+      const { onlineUsers } = require("../socket/socketHandler");
+      const senderSocketId = onlineUsers.get(userId.toString());
+      if (senderSocketId) {
+        _io.to(senderSocketId).emit("messages_read", {
+          readBy: myId.toString(),
+          readAt: now.toISOString(),
+        });
+      }
+    }
 
     res.status(200).json(messages);
   } catch (error) {
@@ -108,21 +115,31 @@ const getMessages = async (req, res) => {
 };
 
 // @route POST /api/messages/:userId
-// saves a message to the database (actual real-time delivery happens over socket.io)
 const sendMessage = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { text } = req.body;
+    const { text, replyTo } = req.body;
 
     if (!text || !text.trim()) {
       return res.status(400).json({ message: "Message text is required" });
     }
 
-    const message = await Message.create({
+    const messageData = {
       sender: req.user._id,
       receiver: userId,
       text: text.trim(),
-    });
+    };
+
+    // only attach reply snapshot if the caller provided one
+    if (replyTo && replyTo.messageId) {
+      messageData.replyTo = {
+        messageId: replyTo.messageId,
+        text: replyTo.text,
+        senderUsername: replyTo.senderUsername,
+      };
+    }
+
+    const message = await Message.create(messageData);
 
     res.status(201).json(message);
   } catch (error) {
@@ -130,4 +147,4 @@ const sendMessage = async (req, res) => {
   }
 };
 
-module.exports = { getMessages, sendMessage, getConversations };
+module.exports = { getMessages, sendMessage, getConversations, setIO };
