@@ -19,10 +19,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [typingFrom, setTypingFrom] = useState(null);
-  const [unreadCounts, setUnreadCounts] = useState({}); // { [userId]: count }
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const selectedUserRef = useRef(null);
 
   // redirect to login if not authenticated
   useEffect(() => {
@@ -31,14 +32,8 @@ export default function ChatPage() {
     }
   }, [user, loading, router]);
 
-  // NOTE: we intentionally do NOT fetch the full user list anymore.
-  // The sidebar starts empty for NEW contacts — people are found only via
-  // username search. But anyone we've ever exchanged messages with is
-  // loaded back in below, so those conversations are permanent.
-
-  // load every conversation this user has ever had, as soon as they log in —
-  // this is what makes the sidebar list survive refreshes, logouts, and
-  // logging in on a completely different device
+  // load every conversation this user has ever had on mount —
+  // this makes the sidebar list survive refreshes, logouts, and new devices
   useEffect(() => {
     if (!user) return;
 
@@ -68,7 +63,7 @@ export default function ChatPage() {
     loadConversations();
   }, [user]);
 
-  // set up the socket connection once
+  // set up the socket connection once per login session
   useEffect(() => {
     if (!user) return;
 
@@ -77,20 +72,10 @@ export default function ChatPage() {
 
     socket.emit("user_online", user._id);
 
-    // TEMPORARY DIAGNOSTIC LOGGING
-    console.log("[iychat debug] socket setup running. connected?", socket.connected, "id:", socket.id);
+    // re-announce presence after every reconnect so the server always
+    // knows which socket belongs to this user
     socket.on("connect", () => {
-      console.log("[iychat debug] socket CONNECTED. id:", socket.id);
-      // re-announce presence after every (re)connect, including automatic
-      // reconnects after the server was asleep/idle — otherwise the server
-      // has no idea this socket belongs to this user anymore
       socket.emit("user_online", user._id);
-    });
-    socket.on("disconnect", (reason) => {
-      console.log("[iychat debug] socket DISCONNECTED. reason:", reason);
-    });
-    socket.on("connect_error", (err) => {
-      console.log("[iychat debug] socket CONNECT ERROR:", err.message);
     });
 
     socket.on("online_users", (ids) => {
@@ -101,7 +86,6 @@ export default function ChatPage() {
       const isOpenChat = message.sender === selectedUserRef.current?._id;
 
       setMessages((prev) => {
-        // only append if this message belongs to the open conversation
         const belongsToOpenChat =
           message.sender === selectedUserRef.current?._id ||
           message.receiver === selectedUserRef.current?._id;
@@ -109,8 +93,15 @@ export default function ChatPage() {
         return [...prev, message];
       });
 
-      // bump the unread badge for this sender, unless their chat is the
-      // one currently open (in that case there's nothing "unread" about it)
+      // if the chat is open right now, tell the sender it was read immediately
+      if (isOpenChat) {
+        const now = new Date().toISOString();
+        socket.emit("mark_read", {
+          senderId: message.sender,
+          readAt: now,
+        });
+      }
+
       if (!isOpenChat) {
         setUnreadCounts((prev) => ({
           ...prev,
@@ -118,44 +109,55 @@ export default function ChatPage() {
         }));
       }
 
-      // move this sender to the top of the sidebar list — newest activity
-      // surfaces first, same as most chat apps
+      // move sender to top of sidebar
       setConversations((prev) => {
         const existing = prev.find((u) => u._id === message.sender);
         if (existing) {
-          const rest = prev.filter((u) => u._id !== message.sender);
-          return [existing, ...rest];
+          return [existing, ...prev.filter((u) => u._id !== message.sender)];
         }
         return prev;
       });
 
-      // if this sender isn't in the sidebar yet (they messaged us first,
-      // before we ever searched for them), fetch their profile and add them
+      // if sender not in sidebar yet, fetch their profile
       setConversations((prev) => {
         const alreadyThere = prev.some((u) => u._id === message.sender);
         if (alreadyThere) return prev;
-
         api
           .get(`/api/users/${message.sender}`)
           .then((res) => {
-            setConversations((current) => {
-              const exists = current.some((u) => u._id === res.data._id);
-              if (exists) return current;
-              return [res.data, ...current];
+            setConversations((cur) => {
+              if (cur.some((u) => u._id === res.data._id)) return cur;
+              return [res.data, ...cur];
             });
           })
-          .catch((err) => console.error("Failed to load sender profile", err));
-
+          .catch(console.error);
         return prev;
       });
     });
 
     socket.on("message_sent", (message) => {
       setMessages((prev) => {
-        const alreadyExists = prev.some((m) => m._id === message._id);
-        if (alreadyExists) return prev;
+        if (prev.some((m) => m._id === message._id)) return prev;
         return [...prev, message];
       });
+    });
+
+    // the other person just opened our conversation — update the seen
+    // status on our messages in real time without them needing to reload
+    socket.on("messages_read", ({ readBy, readAt }) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          // only update messages we sent to this person that weren't read yet
+          if (
+            m.sender === user._id &&
+            m.receiver === readBy &&
+            !m.isRead
+          ) {
+            return { ...m, isRead: true, readAt };
+          }
+          return m;
+        })
+      );
     });
 
     socket.on("typing", ({ senderId }) => {
@@ -172,29 +174,26 @@ export default function ChatPage() {
 
     return () => {
       socket.off("connect");
-      socket.off("disconnect");
-      socket.off("connect_error");
       socket.off("online_users");
       socket.off("receive_message");
       socket.off("message_sent");
+      socket.off("messages_read");
       socket.off("typing");
       socket.off("stop_typing");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // keep a ref of the selected user so socket callbacks always read the latest value
-  const selectedUserRef = useRef(null);
+  // keep a ref to selectedUser so socket callbacks always have the latest value
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
 
-  // load conversation history whenever a different user is selected
   const handleSelectUser = useCallback(async (otherUser) => {
     setSelectedUser(otherUser);
     setTypingFrom(null);
 
-    // opening a chat clears its unread badge
+    // clear unread badge for this person
     setUnreadCounts((prev) => {
       if (!prev[otherUser._id]) return prev;
       const updated = { ...prev };
@@ -202,8 +201,7 @@ export default function ChatPage() {
       return updated;
     });
 
-    // remember this person in the sidebar (and bring them to the top)
-    // so the chat doesn't disappear once the search box is cleared
+    // bring them to the top of the sidebar
     setConversations((prev) => {
       const existing = prev.find((u) => u._id === otherUser._id);
       const rest = prev.filter((u) => u._id !== otherUser._id);
@@ -213,24 +211,25 @@ export default function ChatPage() {
     try {
       const res = await api.get(`/api/messages/${otherUser._id}`);
       setMessages(res.data);
+
+      // tell their socket that we just read all their messages
+      const now = new Date().toISOString();
+      socketRef.current?.emit("mark_read", {
+        senderId: otherUser._id,
+        readAt: now,
+      });
     } catch (err) {
       console.error("Failed to load messages", err);
       setMessages([]);
     }
   }, []);
 
-  // called by the Sidebar search box — looks up users by username
   const handleSearch = useCallback(async (username) => {
     try {
-      const res = await api.get("/api/users/search", {
-        params: { username },
-      });
+      const res = await api.get("/api/users/search", { params: { username } });
       return { results: res.data, error: null };
     } catch (err) {
       console.error("Search failed", err);
-      // surface what actually went wrong instead of pretending it was
-      // just an empty result — a 401, CORS failure, or network error
-      // looks identical to "no matches" unless we report it
       const message =
         err.response?.status === 401
           ? "Your session expired — please log in again."
@@ -242,31 +241,31 @@ export default function ChatPage() {
   }, []);
 
   const handleSendMessage = useCallback(
-    async (text) => {
+    async (text, replyingTo = null) => {
       if (!selectedUser) return;
 
-      // TEMPORARY DIAGNOSTIC LOGGING — helps us see exactly what's happening
-      // with the socket connection when a message is sent. Safe to remove
-      // once the real-time bug is confirmed fixed.
-      console.log("[iychat debug] sending message. socket connected?", socketRef.current?.connected);
-      console.log("[iychat debug] socket id:", socketRef.current?.id);
-
       try {
-        const res = await api.post(`/api/messages/${selectedUser._id}`, {
-          text,
-        });
+        const body = { text };
 
+        if (replyingTo) {
+          body.replyTo = {
+            messageId: replyingTo._id,
+            text: replyingTo.text,
+            senderUsername:
+              replyingTo.sender === user._id
+                ? user.username
+                : selectedUser.username,
+          };
+        }
+
+        const res = await api.post(`/api/messages/${selectedUser._id}`, body);
         const savedMessage = res.data;
-
-        console.log("[iychat debug] message saved to DB:", savedMessage._id);
 
         socketRef.current?.emit("send_message", {
           ...savedMessage,
           sender: user._id,
           receiver: selectedUser._id,
         });
-
-        console.log("[iychat debug] emitted send_message over socket");
       } catch (err) {
         console.error("Failed to send message", err);
       }
@@ -280,11 +279,8 @@ export default function ChatPage() {
       senderId: user._id,
       receiverId: selectedUser._id,
     });
-
     clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      handleStopTyping();
-    }, 2000);
+    typingTimeoutRef.current = setTimeout(() => handleStopTyping(), 2000);
   }, [selectedUser, user]);
 
   const handleStopTyping = useCallback(() => {
@@ -300,8 +296,6 @@ export default function ChatPage() {
     router.push("/login");
   };
 
-  // on mobile, the back button just clears the open chat so the
-  // sidebar (conversation list) shows again
   const handleBackToList = () => {
     setSelectedUser(null);
   };
@@ -314,9 +308,6 @@ export default function ChatPage() {
     );
   }
 
-  // on mobile: show ONLY the sidebar (no chat open) OR ONLY the chat
-  // window (a chat is open) — never both at once, like WhatsApp Web.
-  // on desktop: show both side by side, like before.
   const showSidebar = !isMobile || !selectedUser;
   const showChatWindow = !isMobile || !!selectedUser;
 
@@ -339,6 +330,7 @@ export default function ChatPage() {
           selectedUser={selectedUser}
           messages={messages}
           currentUserId={user._id}
+          currentUsername={user.username}
           onSendMessage={handleSendMessage}
           isTyping={typingFrom === selectedUser?._id}
           onTyping={handleTyping}

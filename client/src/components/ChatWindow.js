@@ -7,6 +7,7 @@ export default function ChatWindow({
   selectedUser,
   messages,
   currentUserId,
+  currentUsername,
   onSendMessage,
   isTyping,
   onTyping,
@@ -14,11 +15,21 @@ export default function ChatWindow({
   onBack,
 }) {
   const [text, setText] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null); // the message being replied to
+  const inputRef = useRef(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // when reply is set, focus the input automatically so the user can
+  // start typing without an extra tap
+  useEffect(() => {
+    if (replyingTo) {
+      inputRef.current?.focus();
+    }
+  }, [replyingTo]);
 
   if (!selectedUser) {
     return (
@@ -31,8 +42,10 @@ export default function ChatWindow({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    onSendMessage(text.trim());
+
+    onSendMessage(text.trim(), replyingTo);
     setText("");
+    setReplyingTo(null);
     onStopTyping();
   };
 
@@ -41,15 +54,19 @@ export default function ChatWindow({
     onTyping();
   };
 
+  const handleReply = (message) => {
+    setReplyingTo(message);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         {onBack && (
-          <button
-            onClick={onBack}
-            style={styles.backBtn}
-            aria-label="Back to conversations"
-          >
+          <button onClick={onBack} style={styles.backBtn} aria-label="Back">
             ←
           </button>
         )}
@@ -67,7 +84,12 @@ export default function ChatWindow({
           <MessageBubble
             key={msg._id}
             message={msg}
-            isOwnMessage={msg.sender === currentUserId}
+            isOwnMessage={
+              msg.sender === currentUserId ||
+              msg.sender?._id === currentUserId
+            }
+            currentUsername={currentUsername}
+            onReply={handleReply}
           />
         ))}
 
@@ -82,12 +104,42 @@ export default function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
+      {/* reply bar — appears above input when replying to a message */}
+      {replyingTo && (
+        <div style={styles.replyBar}>
+          <div style={styles.replyBarContent}>
+            <span style={styles.replyBarLabel}>
+              Replying to{" "}
+              <strong>
+                {replyingTo.sender === currentUserId ||
+                replyingTo.sender?._id === currentUserId
+                  ? "yourself"
+                  : selectedUser.username}
+              </strong>
+            </span>
+            <span style={styles.replyBarText}>
+              {replyingTo.text.length > 60
+                ? replyingTo.text.slice(0, 60) + "…"
+                : replyingTo.text}
+            </span>
+          </div>
+          <button
+            onClick={cancelReply}
+            style={styles.cancelReplyBtn}
+            aria-label="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={styles.inputBar}>
         <input
+          ref={inputRef}
           type="text"
           value={text}
           onChange={handleChange}
-          placeholder="Type a message"
+          placeholder={replyingTo ? "Type your reply…" : "Type a message"}
           style={styles.input}
         />
         <button type="submit" style={styles.sendBtn}>
@@ -165,6 +217,41 @@ const styles = {
     background: "var(--text-muted)",
     display: "inline-block",
     animation: "typingDot 1.1s infinite ease-in-out",
+  },
+  replyBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "10px 16px",
+    borderTop: "1px solid var(--border)",
+    background: "var(--surface)",
+    gap: "12px",
+  },
+  replyBarContent: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    overflow: "hidden",
+  },
+  replyBarLabel: {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+  },
+  replyBarText: {
+    fontSize: "13px",
+    color: "var(--text)",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  cancelReplyBtn: {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-muted)",
+    fontSize: "14px",
+    cursor: "pointer",
+    flexShrink: 0,
+    padding: "4px",
   },
   inputBar: {
     display: "flex",
