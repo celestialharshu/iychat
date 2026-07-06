@@ -1,107 +1,152 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import api from "@/lib/api";
+import { useRelativeTime } from "@/lib/useRelativeTime";
 
-export default function NotificationPanel({ onClose, onCountChange }) {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const panelRef = useRef(null);
+// a single notification row — handles its own accept/reject action state
+// so the rest of the list doesn't re-render during an in-progress action
+function NotificationRow({ notification, onUpdate }) {
+  const [acting, setActing] = useState(false);
+  const timeLabel = useRelativeTime(notification.createdAt);
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
+  const actor = notification.actor;
+  const type = notification.type;
+  // locally overridden status after the user acts in this session
+  const [localStatus, setLocalStatus] = useState(null);
 
-  // close when clicking outside the panel
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
-  async function loadRequests() {
-    setLoading(true);
+  const handleAccept = async () => {
+    if (!notification.followRequestId) return;
+    setActing(true);
     try {
-      const res = await api.get("/api/follow/pending");
-      setRequests(res.data);
-      onCountChange(res.data.length);
+      await api.post(`/api/follow/accept/${notification.followRequestId}`);
+      setLocalStatus("accepted");
+      // tell parent to update this notification so it persists correctly
+      // if the panel is closed and reopened
+      onUpdate(notification._id, { _localStatus: "accepted" });
     } catch (err) {
-      console.error("Failed to load requests", err);
+      console.error("Failed to accept", err);
     } finally {
-      setLoading(false);
+      setActing(false);
     }
-  }
+  };
 
-  async function handleAccept(requestId) {
+  const handleReject = async () => {
+    if (!notification.followRequestId) return;
+    setActing(true);
     try {
-      await api.post(`/api/follow/accept/${requestId}`);
-      const updated = requests.filter((r) => r._id !== requestId);
-      setRequests(updated);
-      onCountChange(updated.length);
+      await api.post(`/api/follow/reject/${notification.followRequestId}`);
+      setLocalStatus("rejected");
+      onUpdate(notification._id, { _localStatus: "rejected" });
     } catch (err) {
-      console.error("Failed to accept request", err);
+      console.error("Failed to reject", err);
+    } finally {
+      setActing(false);
     }
-  }
+  };
 
-  async function handleReject(requestId) {
-    try {
-      await api.post(`/api/follow/reject/${requestId}`);
-      const updated = requests.filter((r) => r._id !== requestId);
-      setRequests(updated);
-      onCountChange(updated.length);
-    } catch (err) {
-      console.error("Failed to reject request", err);
+  // decide what to render based on type + current action state
+  const renderContent = () => {
+    if (type === "request_accepted") {
+      return (
+        <p style={styles.notifText}>
+          <strong>{actor?.username}</strong> accepted your follow request
+        </p>
+      );
     }
-  }
+
+    // type === "follow_request"
+    // localStatus = acted in this session
+    // _localStatus = persisted in parent state from a previous action this session
+    // _requestStatus = loaded from the server on page load (real db status)
+    const status = localStatus || notification._localStatus || notification._requestStatus;
+
+    if (status === "accepted") {
+      return (
+        <p style={styles.notifText}>
+          <strong>{actor?.username}</strong> started following you
+        </p>
+      );
+    }
+
+    if (status === "rejected") {
+      return (
+        <p style={{ ...styles.notifText, opacity: 0.5 }}>
+          <strong>{actor?.username}</strong> — request declined
+        </p>
+      );
+    }
+
+    // still pending — show accept / reject buttons
+    return (
+      <>
+        <p style={styles.notifText}>
+          <strong>{actor?.username}</strong> wants to follow you
+        </p>
+        <div style={styles.actionRow}>
+          <button
+            onClick={handleAccept}
+            disabled={acting}
+            style={{ ...styles.actionBtn, ...styles.acceptBtn }}
+          >
+            {acting ? "…" : "Accept"}
+          </button>
+          <button
+            onClick={handleReject}
+            disabled={acting}
+            style={{ ...styles.actionBtn, ...styles.rejectBtn }}
+          >
+            {acting ? "…" : "Reject"}
+          </button>
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        ...styles.row,
+        background: notification.read
+          ? "transparent"
+          : "var(--bubble-received-bg)",
+      }}
+    >
+      <div style={styles.avatar}>
+        {actor?.username?.slice(0, 1).toUpperCase() || "?"}
+      </div>
+      <div style={styles.rowContent}>
+        {renderContent()}
+        <span style={styles.timeLabel}>{timeLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function NotificationPanel({ notifications, onClose, onNotificationUpdate }) {
+  const panelRef = useRef(null);
 
   return (
     <div ref={panelRef} style={styles.panel}>
       <div style={styles.header}>
-        <h3 style={styles.title}>Follow Requests</h3>
+        <h3 style={styles.title}>Notifications</h3>
         <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
           ✕
         </button>
       </div>
 
       <div style={styles.list}>
-        {loading && (
-          <p style={styles.emptyText}>Loading…</p>
+        {notifications.length === 0 && (
+          <p style={styles.emptyText}>No notifications yet</p>
         )}
 
-        {!loading && requests.length === 0 && (
-          <p style={styles.emptyText}>No pending requests</p>
-        )}
-
-        {!loading &&
-          requests.map((req) => (
-            <div key={req._id} style={styles.requestItem}>
-              <div style={styles.senderAvatar}>
-                {req.sender.username.slice(0, 1).toUpperCase()}
-              </div>
-              <div style={styles.senderInfo}>
-                <span style={styles.senderName}>{req.sender.username}</span>
-                <span style={styles.senderSub}>wants to follow you</span>
-              </div>
-              <div style={styles.actionBtns}>
-                <button
-                  onClick={() => handleAccept(req._id)}
-                  style={{ ...styles.actionBtn, ...styles.acceptBtn }}
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() => handleReject(req._id)}
-                  style={{ ...styles.actionBtn, ...styles.rejectBtn }}
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
-          ))}
+        {notifications.map((notif) => (
+          <NotificationRow
+            key={notif._id}
+            notification={notif}
+            onUpdate={onNotificationUpdate}
+          />
+        ))}
       </div>
     </div>
   );
@@ -146,7 +191,6 @@ const styles = {
   list: {
     flex: 1,
     overflowY: "auto",
-    padding: "8px 0",
   },
   emptyText: {
     padding: "24px 16px",
@@ -154,14 +198,15 @@ const styles = {
     color: "var(--text-muted)",
     textAlign: "center",
   },
-  requestItem: {
+  row: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "10px",
-    padding: "12px 16px",
+    padding: "14px 16px",
     borderBottom: "1px solid var(--border)",
+    transition: "background 0.2s ease",
   },
-  senderAvatar: {
+  avatar: {
     width: "40px",
     height: "40px",
     borderRadius: "50%",
@@ -174,39 +219,33 @@ const styles = {
     justifyContent: "center",
     flexShrink: 0,
   },
-  senderInfo: {
+  rowContent: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    gap: "2px",
-    overflow: "hidden",
+    gap: "6px",
   },
-  senderName: {
-    fontSize: "14px",
-    fontWeight: "600",
+  notifText: {
+    fontSize: "13.5px",
     color: "var(--text)",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+    margin: 0,
+    lineHeight: 1.4,
   },
-  senderSub: {
-    fontSize: "12px",
+  timeLabel: {
+    fontSize: "11px",
     color: "var(--text-muted)",
   },
-  actionBtns: {
+  actionRow: {
     display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-    flexShrink: 0,
+    gap: "8px",
   },
   actionBtn: {
-    padding: "5px 10px",
+    padding: "5px 14px",
     borderRadius: "6px",
     fontSize: "12px",
     fontWeight: "600",
     cursor: "pointer",
     border: "none",
-    width: "64px",
   },
   acceptBtn: {
     background: "var(--bubble-sent-bg)",

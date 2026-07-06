@@ -23,8 +23,8 @@ export default function ChatPage() {
   const [typingFrom, setTypingFrom] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
 
-  // follow / notification state
-  const [notificationCount, setNotificationCount] = useState(0);
+  // all notifications in one array, newest first — count is derived from this
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [profileCardUser, setProfileCardUser] = useState(null);
 
@@ -33,50 +33,40 @@ export default function ChatPage() {
   const selectedUserRef = useRef(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-    }
+    if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  // load conversation history on mount
+  // load permanent conversation list
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
-      try {
-        const res = await api.get("/api/messages/conversations");
-        setConversations(
-          res.data.map((c) => ({
-            _id: c._id,
-            username: c.username,
-            email: c.email,
-            avatar: c.avatar,
-          }))
-        );
+    api.get("/api/messages/conversations")
+      .then((res) => {
+        setConversations(res.data.map((c) => ({
+          _id: c._id,
+          username: c.username,
+          email: c.email,
+          avatar: c.avatar,
+        })));
         const counts = {};
         res.data.forEach((c) => {
           if (c.unreadCount > 0) counts[c._id] = c.unreadCount;
         });
         setUnreadCounts(counts);
-      } catch (err) {
-        console.error("Failed to load conversations", err);
-      }
-    };
-    load();
+      })
+      .catch((err) => console.error("Failed to load conversations", err));
   }, [user]);
 
-  // load initial notification count on mount
+  // load all notifications on mount — this is the permanent history
   useEffect(() => {
     if (!user) return;
-    const loadCount = async () => {
-      try {
-        const res = await api.get("/api/follow/pending");
-        setNotificationCount(res.data.length);
-      } catch (err) {
-        console.error("Failed to load notification count", err);
-      }
-    };
-    loadCount();
+    api.get("/api/notifications")
+      .then((res) => setNotifications(res.data))
+      .catch((err) => console.error("Failed to load notifications", err));
   }, [user]);
+
+  // unread badge count is always derived from the notifications array —
+  // never stored separately, so it can never get out of sync
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
   // socket setup
   useEffect(() => {
@@ -84,16 +74,13 @@ export default function ChatPage() {
 
     const socket = getSocket();
     socketRef.current = socket;
-
     socket.emit("user_online", user._id);
 
     socket.on("connect", () => {
       socket.emit("user_online", user._id);
     });
 
-    socket.on("online_users", (ids) => {
-      setOnlineUserIds(ids);
-    });
+    socket.on("online_users", (ids) => setOnlineUserIds(ids));
 
     socket.on("receive_message", (message) => {
       const isOpenChat = message.sender === selectedUserRef.current?._id;
@@ -109,9 +96,7 @@ export default function ChatPage() {
       if (isOpenChat) {
         const now = new Date().toISOString();
         socket.emit("mark_read", { senderId: message.sender, readAt: now });
-      }
-
-      if (!isOpenChat) {
+      } else {
         setUnreadCounts((prev) => ({
           ...prev,
           [message.sender]: (prev[message.sender] || 0) + 1,
@@ -127,10 +112,8 @@ export default function ChatPage() {
       });
 
       setConversations((prev) => {
-        const alreadyThere = prev.some((u) => u._id === message.sender);
-        if (alreadyThere) return prev;
-        api
-          .get(`/api/users/${message.sender}`)
+        if (prev.some((u) => u._id === message.sender)) return prev;
+        api.get(`/api/users/${message.sender}`)
           .then((res) => {
             setConversations((cur) => {
               if (cur.some((u) => u._id === res.data._id)) return cur;
@@ -151,27 +134,18 @@ export default function ChatPage() {
 
     socket.on("messages_read", ({ readBy, readAt }) => {
       setMessages((prev) =>
-        prev.map((m) => {
-          if (m.sender === user._id && m.receiver === readBy && !m.isRead) {
-            return { ...m, isRead: true, readAt };
-          }
-          return m;
-        })
+        prev.map((m) =>
+          m.sender === user._id && m.receiver === readBy && !m.isRead
+            ? { ...m, isRead: true, readAt }
+            : m
+        )
       );
     });
 
-    // someone sent us a follow request in real time
-    socket.on("follow_request", ({ requestId, sender }) => {
-      setNotificationCount((prev) => prev + 1);
-    });
-
-    // our follow request was accepted
-    socket.on("request_accepted", ({ acceptedBy }) => {
-      // if profile card is open for this user, update their button state
-      // by re-fetching (ProfileCard handles its own status fetch on mount,
-      // so just close and let the user re-open if needed — or notify them)
-      // For now, a simple alert-style notification is fine here
-      console.log(`${acceptedBy.username} accepted your follow request`);
+    // a new notification arrived in real time (follow request or acceptance)
+    // prepend it so it appears at the top of the panel immediately
+    socket.on("new_notification", (notification) => {
+      setNotifications((prev) => [notification, ...prev]);
     });
 
     socket.on("typing", ({ senderId }) => {
@@ -188,8 +162,7 @@ export default function ChatPage() {
       socket.off("receive_message");
       socket.off("message_sent");
       socket.off("messages_read");
-      socket.off("follow_request");
-      socket.off("request_accepted");
+      socket.off("new_notification");
       socket.off("typing");
       socket.off("stop_typing");
     };
@@ -220,10 +193,9 @@ export default function ChatPage() {
     try {
       const res = await api.get(`/api/messages/${otherUser._id}`);
       setMessages(res.data);
-      const now = new Date().toISOString();
       socketRef.current?.emit("mark_read", {
         senderId: otherUser._id,
-        readAt: now,
+        readAt: new Date().toISOString(),
       });
     } catch (err) {
       console.error("Failed to load messages", err);
@@ -262,9 +234,8 @@ export default function ChatPage() {
           };
         }
         const res = await api.post(`/api/messages/${selectedUser._id}`, body);
-        const savedMessage = res.data;
         socketRef.current?.emit("send_message", {
-          ...savedMessage,
+          ...res.data,
           sender: user._id,
           receiver: selectedUser._id,
         });
@@ -298,10 +269,27 @@ export default function ChatPage() {
     router.push("/login");
   };
 
-  const handleBackToList = () => setSelectedUser(null);
+  // when the panel opens, mark everything as read so the bell badge
+  // clears — we update the local array immediately so the UI is instant
+  const handleBellClick = async () => {
+    const opening = !showNotifications;
+    setShowNotifications(opening);
+    if (opening && unreadNotifCount > 0) {
+      // optimistic update — mark all read locally right away
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      // persist to server in the background
+      api.post("/api/notifications/read").catch(console.error);
+    }
+  };
 
-  // called when the user accepts a follow request through the notification
-  // panel and then wants to open chat with that person from ProfileCard
+  // when a notification's follow_request row gets accepted inside the panel,
+  // update that specific notification's type so the row converts its text
+  const handleNotificationUpdate = (notifId, changes) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n._id === notifId ? { ...n, ...changes } : n))
+    );
+  };
+
   const handleOpenChatFromProfile = (profileUser) => {
     setProfileCardUser(null);
     handleSelectUser(profileUser);
@@ -330,8 +318,8 @@ export default function ChatPage() {
           onLogout={handleLogout}
           onSearch={handleSearch}
           unreadCounts={unreadCounts}
-          notificationCount={notificationCount}
-          onBellClick={() => setShowNotifications((v) => !v)}
+          notificationCount={unreadNotifCount}
+          onBellClick={handleBellClick}
           onProfileCardOpen={setProfileCardUser}
         />
       )}
@@ -346,11 +334,10 @@ export default function ChatPage() {
           isTyping={typingFrom === selectedUser?._id}
           onTyping={handleTyping}
           onStopTyping={handleStopTyping}
-          onBack={isMobile ? handleBackToList : null}
+          onBack={isMobile ? () => setSelectedUser(null) : null}
         />
       )}
 
-      {/* profile card overlay — shown when clicking a search result */}
       {profileCardUser && (
         <ProfileCard
           user={profileCardUser}
@@ -360,11 +347,11 @@ export default function ChatPage() {
         />
       )}
 
-      {/* notification panel — slides in from the right */}
       {showNotifications && (
         <NotificationPanel
+          notifications={notifications}
           onClose={() => setShowNotifications(false)}
-          onCountChange={setNotificationCount}
+          onNotificationUpdate={handleNotificationUpdate}
         />
       )}
     </div>
