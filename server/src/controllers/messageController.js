@@ -30,6 +30,8 @@ const getConversations = async (req, res) => {
           _id: "$otherUser",
           lastMessageText: { $first: "$text" },
           lastMessageAt: { $first: "$createdAt" },
+          // who sent it — lets the client show "You: ..." on the preview line
+          lastMessageSender: { $first: "$sender" },
           unreadCount: {
             $sum: {
               $cond: [
@@ -64,6 +66,7 @@ const getConversations = async (req, res) => {
           avatar: "$userInfo.avatar",
           lastMessageText: 1,
           lastMessageAt: 1,
+          lastMessageSender: 1,
           unreadCount: 1,
         },
       },
