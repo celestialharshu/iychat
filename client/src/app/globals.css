@@ -780,37 +780,127 @@ input {
   border: 2px solid var(--app-bg);
 }
 
-/* ---------- modal (profile card) ---------- */
+/* ---------- account menu (the popup off your rail avatar) ---------- */
 
-.modal {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  animation: fade-in 0.15s ease-out;
-  padding: 16px;
-}
-
-.modal-card {
-  position: relative;
-  width: 340px;
-  max-width: 100%;
+.account-menu {
+  position: absolute;
+  bottom: 0;
+  left: calc(100% + 8px);
+  width: 210px;
+  padding: 8px;
   background: var(--panel);
-  border-radius: 18px;
+  border-radius: 12px;
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  animation: pop-in 0.18s ease-out;
+  z-index: 50;
 }
 
-.modal-body {
+.account-menu-head {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 4px;
+}
+
+/* ---------- profile panel ---------- */
+
+.profile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 36px 24px 26px;
+  padding: 40px 24px 32px;
+  text-align: center;
+}
+
+.profile-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 16px;
+}
+
+.profile-email {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* the camera button clipped to the bottom-right of the big avatar */
+.camera-btn {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  border: 3px solid var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.camera-btn:hover:enabled {
+  filter: brightness(1.1);
+}
+
+.camera-btn:active {
+  transform: scale(0.92);
+}
+
+.camera-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* follower / following counts */
+.stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 96px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* the rename form / follow button sitting under the stats */
+.profile-form {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 28px;
+  text-align: left;
+}
+
+.profile-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.profile-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  text-align: center;
 }
 
 /* ---------- empty states ---------- */

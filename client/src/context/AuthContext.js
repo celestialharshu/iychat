@@ -51,8 +51,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Merge a saved profile change (new photo, new name) into the user we're
+  // already holding. Everything that draws your avatar reads it from here, so
+  // one call updates the rail, the header and your own profile page at once.
+  const applyProfile = (changes) => {
+    setUser((current) => ({ ...current, ...changes }));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, applyProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

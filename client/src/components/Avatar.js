@@ -32,7 +32,11 @@ export default function Avatar({ user, size = 48, online = false }) {
         width: size,
         height: size,
         fontSize: Math.round(size * 0.4),
-        background: user?.avatar ? `url(${user.avatar}) center/cover` : colorFor(name),
+        // the quotes matter: an uploaded photo is a base64 data URL, and
+        // unquoted url(...) chokes on the characters inside it
+        background: user?.avatar
+          ? `url("${user.avatar}") center/cover`
+          : colorFor(name),
       }}
       title={name}
     >

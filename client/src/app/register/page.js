@@ -25,7 +25,8 @@ export default function RegisterPage() {
 
     try {
       await register(username, email, password);
-      router.push("/chat");
+      // brand new account, so send them through setup before the chats
+      router.push("/welcome");
     } catch (err) {
       setError(err.response?.data?.message || "We couldn't create that account.");
     } finally {

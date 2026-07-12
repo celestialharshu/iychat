@@ -10,8 +10,8 @@ import { useIsMobile } from "@/lib/useIsMobile";
 import NavRail from "@/components/NavRail";
 import ChatList from "@/components/ChatList";
 import ChatWindow from "@/components/ChatWindow";
+import ProfilePanel from "@/components/ProfilePanel";
 import EmptyState from "@/components/EmptyState";
-import ProfileCard from "@/components/ProfileCard";
 import NotificationPanel from "@/components/NotificationPanel";
 
 // Move a conversation to the top of the list and refresh its preview line —
@@ -32,12 +32,19 @@ function bumpToTop(list, partnerId, message) {
 }
 
 export default function ChatPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, applyProfile } = useAuth();
   const router = useRouter();
   const isMobile = useIsMobile();
 
-  const [conversations, setConversations] = useState([]);
+  // The big right-hand panel shows exactly one of three things:
+  //   "empty"   nothing picked yet
+  //   "chat"    a conversation — see selectedUser
+  //   "profile" someone's profile — see profileUserId (could be your own)
+  const [view, setView] = useState("empty");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [profileUserId, setProfileUserId] = useState(null);
+
+  const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [typingFrom, setTypingFrom] = useState(null);
@@ -45,7 +52,6 @@ export default function ChatPage() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [profileUser, setProfileUser] = useState(null);
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -192,11 +198,17 @@ export default function ChatPage() {
   }, [user]);
 
   /* ---------------------------------------------------------------- */
-  /* actions                                                           */
+  /* switching what the main panel shows                               */
   /* ---------------------------------------------------------------- */
 
-  const handleSelectUser = useCallback(async (partner) => {
+  const openProfile = useCallback((userId) => {
+    setProfileUserId(userId);
+    setView("profile");
+  }, []);
+
+  const openChat = useCallback(async (partner) => {
     setSelectedUser(partner);
+    setView("chat");
     setTypingFrom(null);
 
     // clear their unread badge
@@ -225,6 +237,22 @@ export default function ChatPage() {
       setMessages([]);
     }
   }, []);
+
+  // back to the chats side of the app, without opening any one conversation
+  const showChats = useCallback(() => {
+    setView(selectedUser ? "chat" : "empty");
+  }, [selectedUser]);
+
+  // on a phone, "back" always means: drop the main panel and show the list
+  const closeMainPanel = useCallback(() => {
+    setSelectedUser(null);
+    setProfileUserId(null);
+    setView("empty");
+  }, []);
+
+  /* ---------------------------------------------------------------- */
+  /* actions                                                           */
+  /* ---------------------------------------------------------------- */
 
   const handleSearch = useCallback(async (username) => {
     try {
@@ -303,6 +331,16 @@ export default function ChatPage() {
     });
   }, [selectedUser, user]);
 
+  // you changed your own photo or name: update the copy of yourself we keep in
+  // auth, and the copy sitting in the conversation list of everyone you've
+  // been talking to won't matter — but your own avatar in the rail will
+  const handleProfileSaved = useCallback(
+    (changes) => {
+      applyProfile(changes);
+    },
+    [applyProfile]
+  );
+
   // opening the drawer clears the badge — locally first so it feels instant,
   // then on the server in the background
   const handleBellClick = () => {
@@ -338,17 +376,22 @@ export default function ChatPage() {
     );
   }
 
-  // on a phone you only ever see one panel: the list, or the open chat
-  const showList = !isMobile || !selectedUser;
-  const showChat = !isMobile || !!selectedUser;
+  // on a phone you only ever see one panel at a time: the list, or whatever
+  // the main panel is currently showing
+  const mainPanelBusy = view !== "empty";
+  const showList = !isMobile || !mainPanelBusy;
+  const showMain = !isMobile || mainPanelBusy;
 
   return (
     <div className="app">
       {!isMobile && (
         <NavRail
           currentUser={user}
+          activeView={view}
           unreadNotifications={unreadNotifications}
           notificationsOpen={showNotifications}
+          onChatsClick={showChats}
+          onProfileClick={() => openProfile(user._id)}
           onBellClick={handleBellClick}
           onLogout={handleLogout}
         />
@@ -357,45 +400,43 @@ export default function ChatPage() {
       {showList && (
         <ChatList
           conversations={conversations}
-          selectedUser={selectedUser}
-          onSelectUser={handleSelectUser}
+          selectedUser={view === "chat" ? selectedUser : null}
+          onSelectUser={openChat}
           onlineUserIds={onlineUserIds}
           currentUser={user}
           unreadCounts={unreadCounts}
           unreadNotifications={unreadNotifications}
           onSearch={handleSearch}
-          onProfileCardOpen={setProfileUser}
+          onOpenProfile={openProfile}
           onBellClick={handleBellClick}
         />
       )}
 
-      {showChat &&
-        (selectedUser ? (
-          <ChatWindow
-            selectedUser={selectedUser}
-            messages={messages}
-            currentUserId={user._id}
-            isOnline={onlineUserIds.includes(selectedUser._id)}
-            isTyping={typingFrom === selectedUser._id}
-            onSendMessage={handleSendMessage}
-            onTyping={handleTyping}
-            onStopTyping={handleStopTyping}
-            onBack={isMobile ? () => setSelectedUser(null) : null}
-          />
-        ) : (
-          <EmptyState />
-        ))}
-
-      {profileUser && (
-        <ProfileCard
-          user={profileUser}
-          onClose={() => setProfileUser(null)}
-          onOpenChat={(partner) => {
-            setProfileUser(null);
-            handleSelectUser(partner);
-          }}
+      {showMain && view === "chat" && selectedUser && (
+        <ChatWindow
+          selectedUser={selectedUser}
+          messages={messages}
+          currentUserId={user._id}
+          isOnline={onlineUserIds.includes(selectedUser._id)}
+          isTyping={typingFrom === selectedUser._id}
+          onSendMessage={handleSendMessage}
+          onTyping={handleTyping}
+          onStopTyping={handleStopTyping}
+          onBack={isMobile ? closeMainPanel : null}
         />
       )}
+
+      {showMain && view === "profile" && (
+        <ProfilePanel
+          key={profileUserId} // remount when you jump between profiles
+          userId={profileUserId}
+          onProfileSaved={handleProfileSaved}
+          onOpenChat={openChat}
+          onBack={isMobile ? closeMainPanel : null}
+        />
+      )}
+
+      {showMain && view === "empty" && <EmptyState />}
 
       {showNotifications && (
         <NotificationPanel

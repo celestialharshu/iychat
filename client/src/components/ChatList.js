@@ -22,7 +22,7 @@ export default function ChatList({
   unreadCounts,
   unreadNotifications,
   onSearch,
-  onProfileCardOpen,
+  onOpenProfile,
   onBellClick,
 }) {
   const isMobile = useIsMobile();
@@ -72,12 +72,13 @@ export default function ChatList({
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   // you can't message someone straight from search — you have to follow them
-  // first, so a result opens their profile card instead of a chat
+  // first. So clicking a result opens their profile in the main panel, where
+  // the Follow button lives.
   const handleResultClick = (user) => {
     setQuery("");
     setResults([]);
     latestQueryRef.current = "";
-    onProfileCardOpen(user);
+    onOpenProfile(user._id);
   };
 
   const isSearching = query.trim().length > 0;
@@ -85,8 +86,16 @@ export default function ChatList({
   return (
     <aside className="panel chat-list">
       <header className="list-head">
-        {/* on a phone there's no icon rail, so your avatar sits here instead */}
-        {isMobile && <Avatar user={currentUser} size={36} />}
+        {/* on a phone there's no icon rail, so your avatar sits here instead —
+            and tapping it opens your profile, same as the rail button does */}
+        {isMobile && (
+          <button
+            onClick={() => onOpenProfile(currentUser._id)}
+            aria-label="Your profile"
+          >
+            <Avatar user={currentUser} size={36} />
+          </button>
+        )}
 
         <h1 className="list-title">Chats</h1>
 

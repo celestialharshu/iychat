@@ -123,6 +123,24 @@ export function LogoutIcon({ size = 18 }) {
   );
 }
 
+export function PersonIcon({ size, filled }) {
+  return (
+    <Svg size={size} fill={filled ? "currentColor" : "none"}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </Svg>
+  );
+}
+
+export function CameraIcon({ size = 16 }) {
+  return (
+    <Svg size={size}>
+      <path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+      <circle cx="12" cy="12.5" r="3.5" />
+    </Svg>
+  );
+}
+
 // The iychat logo mark.
 //
 // A squared-off speech bubble with two message bars knocked out of it — the
