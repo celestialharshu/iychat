@@ -10,15 +10,15 @@ export default function EmptyState() {
         <svg width="180" height="150" viewBox="0 0 180 150" aria-hidden="true">
           <defs>
             <linearGradient id="bubbleFill" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#e9e6ff" />
-              <stop offset="55%" stopColor="#f6f4ff" />
-              <stop offset="100%" stopColor="#ffeef6" />
+              <stop offset="0%" stopColor="#dff3ff" />
+              <stop offset="55%" stopColor="#eef4ff" />
+              <stop offset="100%" stopColor="#e7e3ff" />
             </linearGradient>
 
             <linearGradient id="cursorFill" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#0099ff" />
-              <stop offset="50%" stopColor="#a033ff" />
-              <stop offset="100%" stopColor="#ff5280" />
+              <stop offset="0%" stopColor="#00d4ff" />
+              <stop offset="45%" stopColor="#0a84ff" />
+              <stop offset="100%" stopColor="#6b4dff" />
             </linearGradient>
 
             <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -26,25 +26,22 @@ export default function EmptyState() {
                 dx="0"
                 dy="8"
                 stdDeviation="10"
-                floodColor="#a033ff"
-                floodOpacity="0.18"
+                floodColor="#4d6bff"
+                floodOpacity="0.2"
               />
             </filter>
           </defs>
 
-          {/* the speech bubble */}
+          {/* a squared-off bubble, same shape language as the logo */}
           <g filter="url(#glow)">
             <path
-              d="M90 18c34 0 62 21 62 47 0 26-28 47-62 47-6 0-12-.6-17.6-1.8L54 124a3 3 0 0 1-4.4-3.3l3.4-15.6C37 96.6 28 82.6 28 65 28 39 56 18 90 18Z"
+              d="M46 20h88a26 26 0 0 1 26 26v42a26 26 0 0 1-26 26H74l-27 17 8-17h-9a26 26 0 0 1-26-26V46a26 26 0 0 1 26-26Z"
               fill="url(#bubbleFill)"
             />
           </g>
 
           {/* the cursor sitting inside it */}
-          <path
-            d="M78 44 116 66 98 71 89 90 78 44Z"
-            fill="url(#cursorFill)"
-          />
+          <path d="M76 44 118 68 98 74 88 92 76 44Z" fill="url(#cursorFill)" />
         </svg>
 
         <p className="empty-title">No chats selected</p>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { BubbleMark, MoonIcon, SunIcon } from "@/components/Icons";
+import { LogoMark, MoonIcon, SunIcon } from "@/components/Icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       <form className="auth-card" onSubmit={handleSubmit}>
         <div className="auth-logo">
-          <BubbleMark size={30} />
+          <LogoMark size={30} />
         </div>
 
         <h1 className="auth-title">Log in to iychat</h1>

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { BubbleMark } from "@/components/Icons";
+import { LogoMark } from "@/components/Icons";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -18,7 +18,7 @@ export default function Home() {
     <div className="auth">
       <div style={{ textAlign: "center" }}>
         <div className="auth-logo">
-          <BubbleMark size={32} />
+          <LogoMark size={32} />
         </div>
         <p style={{ marginTop: 14, color: "var(--text-muted)", fontSize: 14 }}>
           Opening iychat…

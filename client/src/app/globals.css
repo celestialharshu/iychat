@@ -18,17 +18,18 @@
   --text: #050505;
   --text-muted: #65676b;
 
-  /* bubbles */
+  /* bubbles — the gradient is sampled from the brand gradient below, so the
+     messages and the logo feel like they came from the same place */
   --bubble-in: #f0f0f0;
   --bubble-in-text: #050505;
-  --bubble-out: linear-gradient(180deg, #0e8fff 0%, #0067ff 100%);
+  --bubble-out: linear-gradient(180deg, #12a0ff 0%, #2f66ff 100%);
   --bubble-out-text: #ffffff;
 
-  /* brand */
-  --blue: #0084ff;
-  --blue-soft: rgba(0, 132, 255, 0.12);
-  --brand-gradient: linear-gradient(135deg, #0099ff 0%, #a033ff 45%, #ff5280 75%, #ff7061 100%);
-  --online: #31a24c;
+  /* brand — cyan to blue to indigo. iychat's own, not anyone else's. */
+  --blue: #2b7fff;
+  --blue-soft: rgba(43, 127, 255, 0.12);
+  --brand-gradient: linear-gradient(135deg, #00d4ff 0%, #0a84ff 45%, #6b4dff 100%);
+  --online: #22c55e;
   --danger: #e41e3f;
 
   /* depth */
@@ -51,12 +52,12 @@
 
   --bubble-in: #303236;
   --bubble-in-text: #e4e6eb;
-  --bubble-out: linear-gradient(180deg, #0e8fff 0%, #0067ff 100%);
+  --bubble-out: linear-gradient(180deg, #12a0ff 0%, #2f66ff 100%);
   --bubble-out-text: #ffffff;
 
-  --blue: #2d88ff;
-  --blue-soft: rgba(45, 136, 255, 0.18);
-  --online: #31a24c;
+  --blue: #4d95ff;
+  --blue-soft: rgba(77, 149, 255, 0.18);
+  --online: #22c55e;
   --danger: #ff5c72;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -183,11 +184,12 @@ input {
   background: var(--active);
 }
 
-/* the little gradient mark at the top of the rail */
+/* the gradient mark at the top of the rail — a squircle, so it reads as its
+   own app icon rather than a round messaging-app badge */
 .logo-mark {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 13px;
   background: var(--brand-gradient);
   display: flex;
   align-items: center;
@@ -870,7 +872,7 @@ input {
 .auth-logo {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: 20px;
   background: var(--brand-gradient);
   display: flex;
   align-items: center;

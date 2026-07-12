@@ -4,13 +4,13 @@
 // first letter. The colour is picked from the username, which means the same
 // person always gets the same colour instead of a random one on every render.
 const COLORS = [
-  "#0084ff", // messenger blue
-  "#a033ff", // violet
-  "#ff5280", // pink
-  "#ff7061", // coral
-  "#f5a623", // amber
-  "#31a24c", // green
-  "#00c6c0", // teal
+  "#0a84ff", // blue
+  "#6b4dff", // indigo
+  "#00b8d4", // cyan
+  "#8e5cf7", // violet
+  "#12b76a", // green
+  "#e0457b", // rose
+  "#f0932b", // amber
 ];
 
 function colorFor(name = "") {

@@ -131,11 +131,27 @@ export function CheckIcon({ size = 14 }) {
   );
 }
 
-// the little speech bubble used as the logo mark and on the empty screen
-export function BubbleMark({ size = 22 }) {
+// The iychat logo mark.
+//
+// A squared-off speech bubble with two message bars knocked out of it — the
+// top one pushed left, the bottom one pushed right. It's a tiny picture of
+// the app itself: one person's message, then the other's. Drawn as a single
+// path with fill-rule="evenodd", so the bars are cut straight out of the
+// bubble and show whatever is behind it (the gradient, usually).
+export function LogoMark({ size = 22 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2Zm1.1 12.5-2.6-2.7-5 2.7 5.4-5.8 2.6 2.7 5-2.7-5.4 5.8Z" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M7 3H17A5 5 0 0 1 22 8V13A5 5 0 0 1 17 18H11L5 21.8L7 18A5 5 0 0 1 2 13V8A5 5 0 0 1 7 3ZM8.3 6.8H12.5A1.5 1.5 0 0 1 12.5 9.8H8.3A1.5 1.5 0 0 1 8.3 6.8ZM11.5 11.8H16A1.5 1.5 0 0 1 16 14.8H11.5A1.5 1.5 0 0 1 11.5 11.8Z"
+      />
     </svg>
   );
 }

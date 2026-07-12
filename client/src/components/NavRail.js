@@ -5,8 +5,8 @@ import Avatar from "./Avatar";
 import { useTheme } from "@/context/ThemeContext";
 import {
   BellIcon,
-  BubbleMark,
   ChatIcon,
+  LogoMark,
   LogoutIcon,
   MoonIcon,
   SunIcon,
@@ -41,7 +41,7 @@ export default function NavRail({
   return (
     <nav className="rail">
       <div className="logo-mark">
-        <BubbleMark size={22} />
+        <LogoMark size={22} />
       </div>
 
       <button className="rail-btn is-active" title="Chats" aria-label="Chats">
