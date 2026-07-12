@@ -44,28 +44,24 @@ export default function ProfileCard({ user, onClose, onOpenChat }) {
   return (
     <div className="modal" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-cover" />
-
         <button
           className="icon-btn"
           onClick={onClose}
           aria-label="Close"
-          style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.25)", color: "#fff" }}
+          style={{ position: "absolute", top: 12, right: 12 }}
         >
           <CloseIcon />
         </button>
 
         <div className="modal-body">
-          <div style={{ borderRadius: "50%", border: "4px solid var(--panel)" }}>
-            <Avatar user={user} size={76} />
-          </div>
+          <Avatar user={user} size={80} />
 
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 12 }}>
             {user.username}
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{user.email}</p>
 
-          <div style={{ marginTop: 18, width: "100%" }}>
+          <div style={{ marginTop: 20, width: "100%" }}>
             <Action
               user={user}
               loading={loading}

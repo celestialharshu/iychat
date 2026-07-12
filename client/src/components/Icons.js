@@ -123,21 +123,13 @@ export function LogoutIcon({ size = 18 }) {
   );
 }
 
-export function CheckIcon({ size = 14 }) {
-  return (
-    <Svg size={size} strokeWidth="2.4">
-      <path d="m4 12.5 5 5L20 6.5" />
-    </Svg>
-  );
-}
-
 // The iychat logo mark.
 //
 // A squared-off speech bubble with two message bars knocked out of it — the
 // top one pushed left, the bottom one pushed right. It's a tiny picture of
 // the app itself: one person's message, then the other's. Drawn as a single
 // path with fill-rule="evenodd", so the bars are cut straight out of the
-// bubble and show whatever is behind it (the gradient, usually).
+// bubble and show the solid tile behind it.
 export function LogoMark({ size = 22 }) {
   return (
     <svg

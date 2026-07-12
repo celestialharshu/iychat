@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import MessageBubble from "./MessageBubble";
-import { BackIcon, CheckIcon, CloseIcon, SendIcon, ThumbIcon } from "./Icons";
+import { BackIcon, CloseIcon, SendIcon, ThumbIcon } from "./Icons";
 import { useRelativeTime } from "@/lib/useRelativeTime";
 import {
   formatDayLabel,
@@ -139,9 +139,7 @@ export default function ChatWindow({
           </div>
         )}
 
-        {lastIsMine && (
-          <Receipt message={lastMessage} recipient={selectedUser} />
-        )}
+        {lastIsMine && <Receipt message={lastMessage} />}
 
         <div ref={bottomRef} />
       </div>
@@ -212,25 +210,17 @@ export default function ChatWindow({
 
 /* ---------------------------------------------------------------- */
 
-// Sits under your last message: a tick while it's only been delivered, and
-// their little avatar once they've actually opened it.
-function Receipt({ message, recipient }) {
+// Sits under your last message. Plain text — "Sent" until they open the
+// chat, then "Seen just now", which ticks over to "Seen 2m ago" on its own
+// because useRelativeTime refreshes the label every 30 seconds.
+function Receipt({ message }) {
   const seenAgo = useRelativeTime(
     message.isRead ? message.readAt || message.createdAt : null
   );
 
-  if (!message.isRead) {
-    return (
-      <div className="receipt">
-        <CheckIcon />
-        Sent
-      </div>
-    );
-  }
-
   return (
-    <div className="receipt" title={`Seen ${seenAgo}`}>
-      <Avatar user={recipient} size={14} />
+    <div className="receipt">
+      {message.isRead ? `Seen ${seenAgo}` : "Sent"}
     </div>
   );
 }

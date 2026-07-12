@@ -18,17 +18,16 @@
   --text: #050505;
   --text-muted: #65676b;
 
-  /* bubbles — the gradient is sampled from the brand gradient below, so the
-     messages and the logo feel like they came from the same place */
+  /* bubbles — flat, no gradient, no gloss. One calm blue for the messages
+     you sent, plain grey for the ones you received. */
   --bubble-in: #f0f0f0;
   --bubble-in-text: #050505;
-  --bubble-out: linear-gradient(180deg, #12a0ff 0%, #2f66ff 100%);
+  --bubble-out: #2f6fd0;
   --bubble-out-text: #ffffff;
 
-  /* brand — cyan to blue to indigo. iychat's own, not anyone else's. */
-  --blue: #2b7fff;
-  --blue-soft: rgba(43, 127, 255, 0.12);
-  --brand-gradient: linear-gradient(135deg, #00d4ff 0%, #0a84ff 45%, #6b4dff 100%);
+  /* brand */
+  --blue: #2f6fd0;
+  --blue-soft: rgba(47, 111, 208, 0.12);
   --online: #22c55e;
   --danger: #e41e3f;
 
@@ -52,11 +51,11 @@
 
   --bubble-in: #303236;
   --bubble-in-text: #e4e6eb;
-  --bubble-out: linear-gradient(180deg, #12a0ff 0%, #2f66ff 100%);
+  --bubble-out: #3a6fbf;
   --bubble-out-text: #ffffff;
 
-  --blue: #4d95ff;
-  --blue-soft: rgba(77, 149, 255, 0.18);
+  --blue: #4a86e8;
+  --blue-soft: rgba(74, 134, 232, 0.16);
   --online: #22c55e;
   --danger: #ff5c72;
 
@@ -184,13 +183,13 @@ input {
   background: var(--active);
 }
 
-/* the gradient mark at the top of the rail — a squircle, so it reads as its
-   own app icon rather than a round messaging-app badge */
+/* the mark at the top of the rail — a squircle, so it reads as its own app
+   icon rather than a round messaging-app badge */
 .logo-mark {
   width: 40px;
   height: 40px;
   border-radius: 13px;
-  background: var(--brand-gradient);
+  background: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -806,19 +805,12 @@ input {
   animation: pop-in 0.18s ease-out;
 }
 
-/* the gradient strip behind the avatar */
-.modal-cover {
-  height: 84px;
-  background: var(--brand-gradient);
-}
-
 .modal-body {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 0 24px 24px;
-  margin-top: -38px;
+  padding: 36px 24px 26px;
 }
 
 /* ---------- empty states ---------- */
@@ -873,7 +865,7 @@ input {
   width: 64px;
   height: 64px;
   border-radius: 20px;
-  background: var(--brand-gradient);
+  background: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
