@@ -1,0 +1,141 @@
+// Every icon in the app lives here so they all share the same stroke weight
+// and sizing. They inherit colour from the parent via `currentColor`, which
+// is what makes them work in both light and dark mode without any extra CSS.
+
+function Svg({ size = 20, children, fill = "none", ...rest }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={fill}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...rest}
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function ChatIcon({ size, filled }) {
+  return (
+    <Svg size={size} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 3c5 0 9 3.6 9 8s-4 8-9 8a10 10 0 0 1-2.6-.34L4 21l1.1-3.5A7.6 7.6 0 0 1 3 11c0-4.4 4-8 9-8Z" />
+    </Svg>
+  );
+}
+
+export function BellIcon({ size, filled }) {
+  return (
+    <Svg size={size} fill={filled ? "currentColor" : "none"}>
+      <path d="M18 8a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7Z" />
+      <path d="M13.7 20a2 2 0 0 1-3.4 0" />
+    </Svg>
+  );
+}
+
+export function SearchIcon({ size = 16 }) {
+  return (
+    <Svg size={size}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </Svg>
+  );
+}
+
+export function ComposeIcon({ size = 18 }) {
+  return (
+    <Svg size={size}>
+      <path d="M17 3.5a2.1 2.1 0 0 1 3 3L8 18.5l-4 1 1-4Z" />
+      <path d="m14.5 6 3 3" />
+    </Svg>
+  );
+}
+
+export function SendIcon({ size = 20 }) {
+  return (
+    <Svg size={size} fill="currentColor" stroke="none">
+      <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12 2-12 2z" />
+    </Svg>
+  );
+}
+
+export function ThumbIcon({ size = 20 }) {
+  return (
+    <Svg size={size} fill="currentColor" stroke="none">
+      <path d="M13 3a1 1 0 0 1 1 1v1.6c0 .9-.2 1.7-.6 2.5L13 9h5.2a2 2 0 0 1 2 2.3l-1 6a2 2 0 0 1-2 1.7H9a3 3 0 0 1-3-3v-5a3 3 0 0 1 1.1-2.3l2.4-2A4 4 0 0 0 11 3.6V4a1 1 0 0 1 1-1ZM4.5 9A1.5 1.5 0 0 1 6 10.5v7a1.5 1.5 0 0 1-3 0v-7A1.5 1.5 0 0 1 4.5 9Z" />
+    </Svg>
+  );
+}
+
+export function BackIcon({ size = 22 }) {
+  return (
+    <Svg size={size}>
+      <path d="M15 19 8 12l7-7" />
+    </Svg>
+  );
+}
+
+export function CloseIcon({ size = 18 }) {
+  return (
+    <Svg size={size}>
+      <path d="M6 6 18 18M18 6 6 18" />
+    </Svg>
+  );
+}
+
+export function ReplyIcon({ size = 15 }) {
+  return (
+    <Svg size={size}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h7a6 6 0 0 1 6 6v4" />
+    </Svg>
+  );
+}
+
+export function MoonIcon({ size = 20 }) {
+  return (
+    <Svg size={size}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+    </Svg>
+  );
+}
+
+export function SunIcon({ size = 20 }) {
+  return (
+    <Svg size={size}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </Svg>
+  );
+}
+
+export function LogoutIcon({ size = 18 }) {
+  return (
+    <Svg size={size}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5M21 12H9" />
+    </Svg>
+  );
+}
+
+export function CheckIcon({ size = 14 }) {
+  return (
+    <Svg size={size} strokeWidth="2.4">
+      <path d="m4 12.5 5 5L20 6.5" />
+    </Svg>
+  );
+}
+
+// the little speech bubble used as the logo mark and on the empty screen
+export function BubbleMark({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2Zm1.1 12.5-2.6-2.7-5 2.7 5.4-5.8 2.6 2.7 5-2.7-5.4 5.8Z" />
+    </svg>
+  );
+}

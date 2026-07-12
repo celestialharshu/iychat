@@ -1,15 +1,35 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { getSocket } from "@/lib/socket";
-import Sidebar from "@/components/Sidebar";
+import { useIsMobile } from "@/lib/useIsMobile";
+
+import NavRail from "@/components/NavRail";
+import ChatList from "@/components/ChatList";
 import ChatWindow from "@/components/ChatWindow";
+import EmptyState from "@/components/EmptyState";
 import ProfileCard from "@/components/ProfileCard";
 import NotificationPanel from "@/components/NotificationPanel";
-import { useIsMobile } from "@/lib/useIsMobile";
+
+// Move a conversation to the top of the list and refresh its preview line —
+// this is what makes the sidebar reorder itself as messages come in.
+function bumpToTop(list, partnerId, message) {
+  const index = list.findIndex((chat) => chat._id === partnerId);
+  if (index === -1) return list;
+
+  const updated = {
+    ...list[index],
+    lastMessageText: message.text,
+    lastMessageAt: message.createdAt,
+    lastMessageSender: message.sender,
+  };
+
+  const rest = list.filter((_, i) => i !== index);
+  return [updated, ...rest];
+}
 
 export default function ChatPage() {
   const { user, loading, logout } = useAuth();
@@ -23,52 +43,63 @@ export default function ChatPage() {
   const [typingFrom, setTypingFrom] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
 
-  // all notifications in one array, newest first — count is derived from this
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [profileCardUser, setProfileCardUser] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
 
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  // socket callbacks are registered once, so they'd otherwise close over stale
+  // state — these refs give them a live view of what's currently on screen
   const selectedUserRef = useRef(null);
+  const conversationsRef = useRef([]);
+
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  // load permanent conversation list
+  /* ---------------------------------------------------------------- */
+  /* initial data                                                      */
+  /* ---------------------------------------------------------------- */
+
   useEffect(() => {
     if (!user) return;
-    api.get("/api/messages/conversations")
+
+    api
+      .get("/api/messages/conversations")
       .then((res) => {
-        setConversations(res.data.map((c) => ({
-          _id: c._id,
-          username: c.username,
-          email: c.email,
-          avatar: c.avatar,
-        })));
+        setConversations(res.data);
+
         const counts = {};
-        res.data.forEach((c) => {
-          if (c.unreadCount > 0) counts[c._id] = c.unreadCount;
+        res.data.forEach((chat) => {
+          if (chat.unreadCount > 0) counts[chat._id] = chat.unreadCount;
         });
         setUnreadCounts(counts);
       })
       .catch((err) => console.error("Failed to load conversations", err));
-  }, [user]);
 
-  // load all notifications on mount — this is the permanent history
-  useEffect(() => {
-    if (!user) return;
-    api.get("/api/notifications")
+    api
+      .get("/api/notifications")
       .then((res) => setNotifications(res.data))
       .catch((err) => console.error("Failed to load notifications", err));
   }, [user]);
 
-  // unread badge count is always derived from the notifications array —
-  // never stored separately, so it can never get out of sync
-  const unreadNotifCount = notifications.filter((n) => !n.read).length;
+  // the badge is always counted from the list itself, so it can never drift
+  const unreadNotifications = notifications.filter((n) => !n.read).length;
 
-  // socket setup
+  /* ---------------------------------------------------------------- */
+  /* sockets                                                           */
+  /* ---------------------------------------------------------------- */
+
   useEffect(() => {
     if (!user) return;
 
@@ -76,60 +107,54 @@ export default function ChatPage() {
     socketRef.current = socket;
     socket.emit("user_online", user._id);
 
-    socket.on("connect", () => {
-      socket.emit("user_online", user._id);
-    });
-
-    socket.on("online_users", (ids) => setOnlineUserIds(ids));
+    socket.on("connect", () => socket.emit("user_online", user._id));
+    socket.on("online_users", setOnlineUserIds);
 
     socket.on("receive_message", (message) => {
-      const isOpenChat = message.sender === selectedUserRef.current?._id;
+      const from = message.sender;
+      const chatIsOpen = from === selectedUserRef.current?._id;
 
-      setMessages((prev) => {
-        const belongs =
-          message.sender === selectedUserRef.current?._id ||
-          message.receiver === selectedUserRef.current?._id;
-        if (!belongs) return prev;
-        return [...prev, message];
-      });
-
-      if (isOpenChat) {
-        const now = new Date().toISOString();
-        socket.emit("mark_read", { senderId: message.sender, readAt: now });
+      if (chatIsOpen) {
+        setMessages((prev) => [...prev, message]);
+        socket.emit("mark_read", {
+          senderId: from,
+          readAt: new Date().toISOString(),
+        });
       } else {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [message.sender]: (prev[message.sender] || 0) + 1,
-        }));
+        setUnreadCounts((prev) => ({ ...prev, [from]: (prev[from] || 0) + 1 }));
       }
 
-      setConversations((prev) => {
-        const existing = prev.find((u) => u._id === message.sender);
-        if (existing) {
-          return [existing, ...prev.filter((u) => u._id !== message.sender)];
-        }
-        return prev;
-      });
+      const known = conversationsRef.current.some((chat) => chat._id === from);
 
-      setConversations((prev) => {
-        if (prev.some((u) => u._id === message.sender)) return prev;
-        api.get(`/api/users/${message.sender}`)
+      if (known) {
+        setConversations((prev) => bumpToTop(prev, from, message));
+      } else {
+        // first message from someone we don't have in the list yet —
+        // pull their profile so we can render a proper row for them
+        api
+          .get(`/api/users/${from}`)
           .then((res) => {
-            setConversations((cur) => {
-              if (cur.some((u) => u._id === res.data._id)) return cur;
-              return [res.data, ...cur];
+            setConversations((prev) => {
+              if (prev.some((chat) => chat._id === res.data._id)) return prev;
+              return [
+                {
+                  ...res.data,
+                  lastMessageText: message.text,
+                  lastMessageAt: message.createdAt,
+                  lastMessageSender: from,
+                },
+                ...prev,
+              ];
             });
           })
-          .catch(console.error);
-        return prev;
-      });
+          .catch((err) => console.error("Failed to load sender", err));
+      }
     });
 
     socket.on("message_sent", (message) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === message._id)) return prev;
-        return [...prev, message];
-      });
+      setMessages((prev) =>
+        prev.some((m) => m._id === message._id) ? prev : [...prev, message]
+      );
     });
 
     socket.on("messages_read", ({ readBy, readAt }) => {
@@ -142,8 +167,6 @@ export default function ChatPage() {
       );
     });
 
-    // a new notification arrived in real time (follow request or acceptance)
-    // prepend it so it appears at the top of the panel immediately
     socket.on("new_notification", (notification) => {
       setNotifications((prev) => [notification, ...prev]);
     });
@@ -166,35 +189,35 @@ export default function ChatPage() {
       socket.off("typing");
       socket.off("stop_typing");
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  useEffect(() => {
-    selectedUserRef.current = selectedUser;
-  }, [selectedUser]);
+  /* ---------------------------------------------------------------- */
+  /* actions                                                           */
+  /* ---------------------------------------------------------------- */
 
-  const handleSelectUser = useCallback(async (otherUser) => {
-    setSelectedUser(otherUser);
+  const handleSelectUser = useCallback(async (partner) => {
+    setSelectedUser(partner);
     setTypingFrom(null);
 
+    // clear their unread badge
     setUnreadCounts((prev) => {
-      if (!prev[otherUser._id]) return prev;
-      const updated = { ...prev };
-      delete updated[otherUser._id];
-      return updated;
+      if (!prev[partner._id]) return prev;
+      const next = { ...prev };
+      delete next[partner._id];
+      return next;
     });
 
-    setConversations((prev) => {
-      const existing = prev.find((u) => u._id === otherUser._id);
-      const rest = prev.filter((u) => u._id !== otherUser._id);
-      return [existing || otherUser, ...rest];
-    });
+    // make sure they're in the list, even if you've never messaged them
+    setConversations((prev) =>
+      prev.some((chat) => chat._id === partner._id) ? prev : [partner, ...prev]
+    );
 
     try {
-      const res = await api.get(`/api/messages/${otherUser._id}`);
+      const res = await api.get(`/api/messages/${partner._id}`);
       setMessages(res.data);
+
       socketRef.current?.emit("mark_read", {
-        senderId: otherUser._id,
+        senderId: partner._id,
         readAt: new Date().toISOString(),
       });
     } catch (err) {
@@ -210,35 +233,42 @@ export default function ChatPage() {
     } catch (err) {
       const message =
         err.response?.status === 401
-          ? "Your session expired — please log in again."
+          ? "Your session expired — log in again."
           : err.message === "Network Error"
-          ? "Network error — check your connection and try again."
+          ? "No connection. Check your internet and try again."
           : err.response?.data?.message || "Search failed. Try again.";
+
       return { results: [], error: message };
     }
   }, []);
 
   const handleSendMessage = useCallback(
-    async (text, replyingTo = null, messageType = "text") => {
+    async (text, replyingTo = null) => {
       if (!selectedUser) return;
+
+      const body = { text };
+
+      if (replyingTo) {
+        body.replyTo = {
+          messageId: replyingTo._id,
+          text: replyingTo.text,
+          senderUsername:
+            replyingTo.sender === user._id
+              ? user.username
+              : selectedUser.username,
+        };
+      }
+
       try {
-        const body = { text, messageType };
-        if (replyingTo) {
-          body.replyTo = {
-            messageId: replyingTo._id,
-            text: replyingTo.text,
-            senderUsername:
-              replyingTo.sender === user._id
-                ? user.username
-                : selectedUser.username,
-          };
-        }
         const res = await api.post(`/api/messages/${selectedUser._id}`, body);
+
         socketRef.current?.emit("send_message", {
           ...res.data,
           sender: user._id,
           receiver: selectedUser._id,
         });
+
+        setConversations((prev) => bumpToTop(prev, selectedUser._id, res.data));
       } catch (err) {
         console.error("Failed to send message", err);
       }
@@ -248,102 +278,122 @@ export default function ChatPage() {
 
   const handleTyping = useCallback(() => {
     if (!selectedUser) return;
+
     socketRef.current?.emit("typing", {
       senderId: user._id,
       receiverId: selectedUser._id,
     });
+
     clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => handleStopTyping(), 2000);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit("stop_typing", {
+        senderId: user._id,
+        receiverId: selectedUser._id,
+      });
+    }, 2000);
   }, [selectedUser, user]);
 
   const handleStopTyping = useCallback(() => {
     if (!selectedUser) return;
+
+    clearTimeout(typingTimeoutRef.current);
     socketRef.current?.emit("stop_typing", {
       senderId: user._id,
       receiverId: selectedUser._id,
     });
   }, [selectedUser, user]);
 
+  // opening the drawer clears the badge — locally first so it feels instant,
+  // then on the server in the background
+  const handleBellClick = () => {
+    const opening = !showNotifications;
+    setShowNotifications(opening);
+
+    if (opening && unreadNotifications > 0) {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      api.post("/api/notifications/read").catch(console.error);
+    }
+  };
+
+  const handleNotificationUpdate = (id, changes) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n._id === id ? { ...n, ...changes } : n))
+    );
+  };
+
   const handleLogout = async () => {
     await logout();
     router.push("/login");
   };
 
-  // when the panel opens, mark everything as read so the bell badge
-  // clears — we update the local array immediately so the UI is instant
-  const handleBellClick = async () => {
-    const opening = !showNotifications;
-    setShowNotifications(opening);
-    if (opening && unreadNotifCount > 0) {
-      // optimistic update — mark all read locally right away
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      // persist to server in the background
-      api.post("/api/notifications/read").catch(console.error);
-    }
-  };
-
-  // when a notification's follow_request row gets accepted inside the panel,
-  // update that specific notification's type so the row converts its text
-  const handleNotificationUpdate = (notifId, changes) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n._id === notifId ? { ...n, ...changes } : n))
-    );
-  };
-
-  const handleOpenChatFromProfile = (profileUser) => {
-    setProfileCardUser(null);
-    handleSelectUser(profileUser);
-  };
+  /* ---------------------------------------------------------------- */
+  /* render                                                            */
+  /* ---------------------------------------------------------------- */
 
   if (loading || !user) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p>Loading…</p>
+      <div className="auth">
+        <p style={{ color: "var(--text-muted)" }}>Loading…</p>
       </div>
     );
   }
 
-  const showSidebar = !isMobile || !selectedUser;
-  const showChatWindow = !isMobile || !!selectedUser;
+  // on a phone you only ever see one panel: the list, or the open chat
+  const showList = !isMobile || !selectedUser;
+  const showChat = !isMobile || !!selectedUser;
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {showSidebar && (
-        <Sidebar
+    <div className="app">
+      {!isMobile && (
+        <NavRail
+          currentUser={user}
+          unreadNotifications={unreadNotifications}
+          notificationsOpen={showNotifications}
+          onBellClick={handleBellClick}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {showList && (
+        <ChatList
           conversations={conversations}
           selectedUser={selectedUser}
           onSelectUser={handleSelectUser}
           onlineUserIds={onlineUserIds}
           currentUser={user}
-          onLogout={handleLogout}
-          onSearch={handleSearch}
           unreadCounts={unreadCounts}
-          notificationCount={unreadNotifCount}
+          unreadNotifications={unreadNotifications}
+          onSearch={handleSearch}
+          onProfileCardOpen={setProfileUser}
           onBellClick={handleBellClick}
-          onProfileCardOpen={setProfileCardUser}
         />
       )}
 
-      {showChatWindow && (
-        <ChatWindow
-          selectedUser={selectedUser}
-          messages={messages}
-          currentUserId={user._id}
-          currentUsername={user.username}
-          onSendMessage={handleSendMessage}
-          isTyping={typingFrom === selectedUser?._id}
-          onTyping={handleTyping}
-          onStopTyping={handleStopTyping}
-          onBack={isMobile ? () => setSelectedUser(null) : null}
-        />
-      )}
+      {showChat &&
+        (selectedUser ? (
+          <ChatWindow
+            selectedUser={selectedUser}
+            messages={messages}
+            currentUserId={user._id}
+            isOnline={onlineUserIds.includes(selectedUser._id)}
+            isTyping={typingFrom === selectedUser._id}
+            onSendMessage={handleSendMessage}
+            onTyping={handleTyping}
+            onStopTyping={handleStopTyping}
+            onBack={isMobile ? () => setSelectedUser(null) : null}
+          />
+        ) : (
+          <EmptyState />
+        ))}
 
-      {profileCardUser && (
+      {profileUser && (
         <ProfileCard
-          user={profileCardUser}
-          currentUser={user}
-          onClose={() => setProfileCardUser(null)}
-          onOpenChat={handleOpenChatFromProfile}
+          user={profileUser}
+          onClose={() => setProfileUser(null)}
+          onOpenChat={(partner) => {
+            setProfileUser(null);
+            handleSelectUser(partner);
+          }}
         />
       )}
 

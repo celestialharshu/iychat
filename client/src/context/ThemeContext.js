@@ -4,39 +4,29 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeContext = createContext(null);
 
+// The theme is actually applied by a tiny script in layout.js that runs before
+// the page paints, so there's no white flash on load. All this provider does is
+// read back what that script decided, and let you flip it.
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState("light");
-  const [mounted, setMounted] = useState(false);
 
-  // on first load, read saved preference (or fall back to system preference)
   useEffect(() => {
-    const saved = localStorage.getItem("iychat-theme");
-    if (saved === "dark" || saved === "light") {
-      setTheme(saved);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-    }
-    setMounted(true);
+    const applied = document.documentElement.getAttribute("data-theme");
+    if (applied === "dark") setTheme("dark");
   }, []);
 
-  // apply the theme to <html data-theme="..."> so CSS variables switch
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("iychat-theme", theme);
-  }, [theme]);
-
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    setTheme((current) => {
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("iychat-theme", next);
+      return next;
+    });
   };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {/* hidden until mounted, so there's no flash of the wrong theme —
-          but children always have access to ThemeContext, even during
-          server-side rendering / static export */}
-      <div style={{ visibility: mounted ? "visible" : "hidden" }}>
-        {children}
-      </div>
+      {children}
     </ThemeContext.Provider>
   );
 }

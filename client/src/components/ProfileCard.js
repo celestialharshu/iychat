@@ -2,228 +2,133 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import Avatar from "./Avatar";
+import { CloseIcon } from "./Icons";
 
-// shown when you click on a user in search results —
-// lets you see follow status and send/manage a follow request
-// before being allowed to open a chat
-export default function ProfileCard({ user, currentUser, onClose, onOpenChat }) {
+// You can't message a stranger straight away — you follow them, they confirm,
+// and then the chat opens. This card is where that happens.
+export default function ProfileCard({ user, onClose, onOpenChat }) {
   const [status, setStatus] = useState(null); // { outgoing, incoming }
   const [loading, setLoading] = useState(true);
-  const [acting, setActing] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    const fetchStatus = async () => {
-      try {
-        const res = await api.get(`/api/follow/status/${user._id}`);
-        setStatus(res.data);
-      } catch (err) {
-        console.error("Failed to fetch follow status", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStatus();
-  }, [user]);
+    api
+      .get(`/api/follow/status/${user._id}`)
+      .then((res) => setStatus(res.data))
+      .catch((err) => console.error("Failed to load follow status", err))
+      .finally(() => setLoading(false));
+  }, [user._id]);
 
-  const sendRequest = async () => {
-    setActing(true);
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const follow = async () => {
+    setSending(true);
     try {
       await api.post(`/api/follow/send/${user._id}`);
       setStatus((prev) => ({ ...prev, outgoing: "pending" }));
     } catch (err) {
-      console.error("Failed to send request", err);
+      console.error("Failed to send follow request", err);
     } finally {
-      setActing(false);
+      setSending(false);
     }
-  };
-
-  // render the right action button based on relationship state
-  const renderFollowButton = () => {
-    if (loading) {
-      return <button style={{ ...styles.btn, ...styles.btnGhost }}>Loading…</button>;
-    }
-
-    const out = status?.outgoing;
-    const inc = status?.incoming;
-
-    // they accepted your request — you're following them, can open chat
-    if (out === "accepted") {
-      return (
-        <div style={styles.buttonRow}>
-          <span style={styles.followingBadge}>✓ Following</span>
-          <button
-            onClick={() => onOpenChat(user)}
-            style={{ ...styles.btn, ...styles.btnPrimary }}
-          >
-            Open Chat
-          </button>
-        </div>
-      );
-    }
-
-    // you sent a request and it's still pending
-    if (out === "pending") {
-      return (
-        <button disabled style={{ ...styles.btn, ...styles.btnGhost }}>
-          Requested
-        </button>
-      );
-    }
-
-    // they sent you a request — show accept/reject in the notification panel
-    // but also show a note here so the context is clear
-    if (inc === "pending") {
-      return (
-        <p style={styles.incomingNote}>
-          This user sent you a follow request — check your notifications.
-        </p>
-      );
-    }
-
-    if (inc === "accepted") {
-      return (
-        <div style={styles.buttonRow}>
-          <span style={styles.followingBadge}>Follows you</span>
-          <button
-            onClick={sendRequest}
-            disabled={acting}
-            style={{ ...styles.btn, ...styles.btnPrimary }}
-          >
-            {acting ? "Sending…" : "Follow Back"}
-          </button>
-        </div>
-      );
-    }
-
-    // no relationship yet — show Follow button
-    return (
-      <button
-        onClick={sendRequest}
-        disabled={acting}
-        style={{ ...styles.btn, ...styles.btnPrimary }}
-      >
-        {acting ? "Sending…" : "Follow"}
-      </button>
-    );
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.card} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">
-          ✕
+    <div className="modal" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-cover" />
+
+        <button
+          className="icon-btn"
+          onClick={onClose}
+          aria-label="Close"
+          style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.25)", color: "#fff" }}
+        >
+          <CloseIcon />
         </button>
 
-        <div style={styles.avatar}>
-          {user.username.slice(0, 1).toUpperCase()}
+        <div className="modal-body">
+          <div style={{ borderRadius: "50%", border: "4px solid var(--panel)" }}>
+            <Avatar user={user} size={76} />
+          </div>
+
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>
+            {user.username}
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{user.email}</p>
+
+          <div style={{ marginTop: 18, width: "100%" }}>
+            <Action
+              user={user}
+              loading={loading}
+              status={status}
+              sending={sending}
+              onFollow={follow}
+              onOpenChat={() => onOpenChat(user)}
+            />
+          </div>
         </div>
-
-        <h2 style={styles.username}>{user.username}</h2>
-        <p style={styles.email}>{user.email}</p>
-
-        <div style={styles.actions}>{renderFollowButton()}</div>
       </div>
     </div>
   );
 }
 
-const styles = {
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.4)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 200,
-  },
-  card: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "16px",
-    padding: "32px 28px",
-    width: "320px",
-    maxWidth: "90vw",
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "8px",
-    boxShadow: "var(--shadow-md)",
-  },
-  closeBtn: {
-    position: "absolute",
-    top: "14px",
-    right: "16px",
-    background: "transparent",
-    border: "none",
-    color: "var(--text-muted)",
-    fontSize: "16px",
-    cursor: "pointer",
-  },
-  avatar: {
-    width: "72px",
-    height: "72px",
-    borderRadius: "50%",
-    background: "var(--bubble-sent-bg)",
-    color: "var(--bubble-sent-text)",
-    fontSize: "28px",
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: "8px",
-  },
-  username: {
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "var(--text)",
-    margin: 0,
-  },
-  email: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
-    margin: 0,
-  },
-  actions: {
-    marginTop: "16px",
-    width: "100%",
-    display: "flex",
-    justifyContent: "center",
-  },
-  buttonRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  btn: {
-    padding: "10px 22px",
-    borderRadius: "10px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    border: "none",
-  },
-  btnPrimary: {
-    background: "var(--bubble-sent-bg)",
-    color: "var(--bubble-sent-text)",
-  },
-  btnGhost: {
-    background: "var(--bubble-received-bg)",
-    color: "var(--text-muted)",
-    border: "1px solid var(--border)",
-    cursor: "default",
-  },
-  followingBadge: {
-    fontSize: "13px",
-    color: "var(--accent-online)",
-    fontWeight: "600",
-  },
-  incomingNote: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
-    textAlign: "center",
-    lineHeight: 1.5,
-  },
-};
+/* ---------------------------------------------------------------- */
+
+function Action({ user, loading, status, sending, onFollow, onOpenChat }) {
+  if (loading) {
+    return (
+      <button className="btn btn-ghost btn-block" disabled>
+        Loading…
+      </button>
+    );
+  }
+
+  const outgoing = status?.outgoing;
+  const incoming = status?.incoming;
+
+  // they confirmed you — the chat is unlocked
+  if (outgoing === "accepted") {
+    return (
+      <button className="btn btn-primary btn-block" onClick={onOpenChat}>
+        Message
+      </button>
+    );
+  }
+
+  if (outgoing === "pending") {
+    return (
+      <button className="btn btn-ghost btn-block" disabled>
+        Request sent
+      </button>
+    );
+  }
+
+  // they asked to follow you first — answer it from the notifications drawer
+  if (incoming === "pending") {
+    return (
+      <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
+        {user.username} sent you a follow request. Open your notifications to
+        confirm it.
+      </p>
+    );
+  }
+
+  return (
+    <button
+      className="btn btn-primary btn-block"
+      onClick={onFollow}
+      disabled={sending}
+    >
+      {sending ? "Sending…" : incoming === "accepted" ? "Follow back" : "Follow"}
+    </button>
+  );
+}

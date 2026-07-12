@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { BubbleMark } from "@/components/Icons";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -14,17 +15,15 @@ export default function Home() {
   }, [user, loading, router]);
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg)",
-        color: "var(--text)",
-      }}
-    >
-      <p>Loading iychat...</p>
+    <div className="auth">
+      <div style={{ textAlign: "center" }}>
+        <div className="auth-logo">
+          <BubbleMark size={32} />
+        </div>
+        <p style={{ marginTop: 14, color: "var(--text-muted)", fontSize: 14 }}>
+          Opening iychat…
+        </p>
+      </div>
     </div>
   );
 }
