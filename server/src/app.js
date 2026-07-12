@@ -18,7 +18,10 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+
+// Profile photos arrive as base64 strings inside the JSON body. Express only
+// accepts 100kb by default, which a photo will blow past, so raise the limit.
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
