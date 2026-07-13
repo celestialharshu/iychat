@@ -37,104 +37,93 @@ export default function RegisterPage() {
   const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
   return (
-    <div className="auth-page">
-      <header className="auth-topbar">
-        <div className="auth-brand">
+    <div className="auth-two">
+      <button
+        className="icon-btn auth-toggle"
+        onClick={toggleTheme}
+        aria-label="Toggle dark mode"
+      >
+        <ThemeIcon size={18} />
+      </button>
+
+      <div className="auth-form-side">
+        <form className="auth-box" onSubmit={handleSubmit}>
           <span className="auth-brand-mark">
-            <LogoMark size={19} />
+            <LogoMark size={24} />
           </span>
-          <span className="auth-brand-name">iychat</span>
-        </div>
 
-        <button
-          className="icon-btn"
-          onClick={toggleTheme}
-          aria-label="Toggle dark mode"
-        >
-          <ThemeIcon size={18} />
-        </button>
-      </header>
+          <h1 className="auth-heading">Create your account</h1>
+          <p className="auth-lead">
+            You&apos;ll pick a photo and a display name next.
+          </p>
 
-      <main className="auth-body">
-        <div className="auth-form-col">
-          <form onSubmit={handleSubmit}>
-            <h1 className="auth-heading">Create your account</h1>
-            <p className="auth-lead">
-              You&apos;ll pick a photo and a display name on the next step.
-            </p>
+          {error && <p className="auth-error">{error}</p>}
 
-            {error && <p className="auth-error">{error}</p>}
+          <div className="field-group">
+            <label className="field-label" htmlFor="username">
+              Username
+            </label>
+            <input
+              id="username"
+              className="field"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              minLength={3}
+              maxLength={20}
+              autoComplete="username"
+              required
+            />
+          </div>
 
-            <div className="field-group">
-              <label className="field-label" htmlFor="username">
-                Username
-              </label>
-              <input
-                id="username"
-                className="field"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                minLength={3}
-                maxLength={20}
-                autoComplete="username"
-                required
-              />
-            </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
 
-            <div className="field-group">
-              <label className="field-label" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                className="field"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              className="field"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              autoComplete="new-password"
+              required
+            />
+          </div>
 
-            <div className="field-group">
-              <label className="field-label" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                className="field"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                autoComplete="new-password"
-                required
-              />
-              <p
-                className="profile-note"
-                style={{ textAlign: "left", marginTop: 6 }}
-              >
-                At least 6 characters.
-              </p>
-            </div>
+          <button
+            className="btn btn-primary btn-block auth-submit"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Creating account…" : "Create account"}
+          </button>
 
-            <button
-              className="btn btn-primary btn-block auth-submit"
-              type="submit"
-              disabled={submitting}
-            >
-              {submitting ? "Creating account…" : "Create account"}
-            </button>
+          <p className="auth-foot">
+            Already have an account? <Link href="/login">Sign in</Link>
+          </p>
+        </form>
+      </div>
 
-            <p className="auth-foot">
-              Already have an account? <Link href="/login">Sign in</Link>
-            </p>
-          </form>
-        </div>
-
+      <div className="auth-art-side">
         <AuthArt />
-      </main>
+      </div>
     </div>
   );
 }

@@ -37,80 +37,75 @@ export default function LoginPage() {
   const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
   return (
-    <div className="auth-page">
-      <header className="auth-topbar">
-        <div className="auth-brand">
+    <div className="auth-two">
+      <button
+        className="icon-btn auth-toggle"
+        onClick={toggleTheme}
+        aria-label="Toggle dark mode"
+      >
+        <ThemeIcon size={18} />
+      </button>
+
+      <div className="auth-form-side">
+        <form className="auth-box" onSubmit={handleSubmit}>
           <span className="auth-brand-mark">
-            <LogoMark size={19} />
+            <LogoMark size={24} />
           </span>
-          <span className="auth-brand-name">iychat</span>
-        </div>
 
-        <button
-          className="icon-btn"
-          onClick={toggleTheme}
-          aria-label="Toggle dark mode"
-        >
-          <ThemeIcon size={18} />
-        </button>
-      </header>
+          <h1 className="auth-heading">Sign in</h1>
+          <p className="auth-lead">
+            Welcome back. Your chats are where you left them.
+          </p>
 
-      <main className="auth-body">
-        <div className="auth-form-col">
-          <form onSubmit={handleSubmit}>
-            <h1 className="auth-heading">Sign in</h1>
-            <p className="auth-lead">
-              Welcome back. Your chats are where you left them.
-            </p>
+          {error && <p className="auth-error">{error}</p>}
 
-            {error && <p className="auth-error">{error}</p>}
+          <div className="field-group">
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
 
-            <div className="field-group">
-              <label className="field-label" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                className="field"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              className="field"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
 
-            <div className="field-group">
-              <label className="field-label" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                className="field"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </div>
+          <button
+            className="btn btn-primary btn-block auth-submit"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
 
-            <button
-              className="btn btn-primary btn-block auth-submit"
-              type="submit"
-              disabled={submitting}
-            >
-              {submitting ? "Signing in…" : "Sign in"}
-            </button>
+          <p className="auth-foot">
+            New here? <Link href="/register">Create one</Link>
+          </p>
+        </form>
+      </div>
 
-            <p className="auth-foot">
-              Don&apos;t have an account? <Link href="/register">Create one</Link>
-            </p>
-          </form>
-        </div>
-
+      <div className="auth-art-side">
         <AuthArt />
-      </main>
+      </div>
     </div>
   );
 }

@@ -928,78 +928,57 @@ input {
 }
 
 /* ---------- sign in / sign up ----------
-   Deliberately nothing like /chat. No icon rail, no floating panels, no grey
-   gutters — one clean open page, so it reads as the front door rather than the
-   app you're already inside. Form on the left, illustration on the right.
+   Two tones side by side: the form sits on the panel colour, the illustration
+   on the page colour. 30 / 70, so the artwork gets the room and the form stays
+   a calm narrow column.
    ---------------------------------------- */
 
-.auth-page {
+.auth-two {
+  position: relative;
+  display: flex;
   min-height: 100dvh;
+}
+
+/* tone one — the form */
+.auth-form-side {
+  flex: 0 0 30%;
+  min-width: 400px;
   display: flex;
-  flex-direction: column;
+  padding: 48px 40px;
   background: var(--panel);
+  overflow-y: auto;
 }
 
-.auth-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  padding: 26px 48px;
-}
-
-.auth-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* margin:auto rather than align-items:center, so a tall form can still scroll */
+.auth-box {
+  width: 100%;
+  max-width: 340px;
+  margin: auto;
 }
 
 .auth-brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
   background: var(--blue);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.auth-brand-name {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-/* max-width + auto margins keep it from stretching thin on a big monitor */
-.auth-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 72px;
-  width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 48px 56px;
-}
-
-/* a fixed column, so the split is never 50/50 no matter the screen */
-.auth-form-col {
-  flex: 0 0 380px;
+  margin-bottom: 26px;
 }
 
 .auth-heading {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 .auth-lead {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-muted);
-  margin-top: 8px;
-  margin-bottom: 30px;
+  margin-top: 6px;
+  margin-bottom: 26px;
 }
 
 .field-group {
@@ -1018,54 +997,75 @@ input {
   margin-top: 10px;
 }
 
-.auth-art-col {
+.auth-box .auth-foot {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.auth-toggle {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  z-index: 2;
+}
+
+/* tone two — the illustration */
+.auth-art-side {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: var(--app-bg);
+}
+
+.auth-art-inner {
+  width: 100%;
+  max-width: 560px;
 }
 
 .auth-art {
   display: block;
   width: 100%;
-  max-width: 560px;
   height: auto;
 }
 
-/* the three dots in the illustration reuse the app's typing animation */
+/* the typing dots inside the illustration reuse the app's own animation */
 .art-dot {
   animation: bounce 1.3s infinite ease-in-out;
 }
-
 .art-dot:nth-of-type(2) {
   animation-delay: 0.16s;
 }
-
 .art-dot:nth-of-type(3) {
   animation-delay: 0.32s;
 }
 
-/* min-height reserves room for two lines, so nothing shifts as the sentence
-   types itself out and then deletes again */
-.auth-typed {
-  width: 100%;
-  max-width: 560px;
-  margin-top: 34px;
-  text-align: center;
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-  min-height: 2.8em;
+/* min-height stops the paragraph below from jumping as the headline types
+   itself out and deletes again */
+.auth-headline {
+  margin-top: 42px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  min-height: 1.45em;
+}
+
+.auth-para {
+  margin-top: 12px;
+  max-width: 470px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted);
 }
 
 .caret {
   display: inline-block;
-  width: 2px;
-  height: 1.05em;
-  margin-left: 3px;
-  vertical-align: -0.15em;
+  width: 3px;
+  height: 0.95em;
+  margin-left: 4px;
+  vertical-align: -0.1em;
   background: var(--blue);
   animation: blink 1s step-end infinite;
 }
@@ -1076,25 +1076,16 @@ input {
   }
 }
 
-/* no room for the illustration on a laptop this small — the form takes over */
+/* no room for two tones on a laptop this small — the form takes the page */
 @media (max-width: 1000px) {
-  .auth-topbar {
-    padding: 20px 24px;
-  }
-
-  .auth-body {
-    gap: 0;
-    padding: 0 24px 40px;
-  }
-
-  .auth-art-col {
+  .auth-art-side {
     display: none;
   }
 
-  .auth-form-col {
+  .auth-form-side {
     flex: 1;
-    max-width: 380px;
-    margin: 0 auto;
+    min-width: 0;
+    padding: 32px 24px;
   }
 }
 
