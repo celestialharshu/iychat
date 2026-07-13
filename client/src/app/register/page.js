@@ -37,116 +37,104 @@ export default function RegisterPage() {
   const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
   return (
-    <div className="auth-shell">
-      <aside className="auth-rail">
-        <div className="logo-mark">
-          <LogoMark size={22} />
+    <div className="auth-page">
+      <header className="auth-topbar">
+        <div className="auth-brand">
+          <span className="auth-brand-mark">
+            <LogoMark size={19} />
+          </span>
+          <span className="auth-brand-name">iychat</span>
         </div>
 
-        <div className="rail-spacer" />
-
         <button
-          className="rail-btn"
+          className="icon-btn"
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
         >
-          <ThemeIcon />
+          <ThemeIcon size={18} />
         </button>
-      </aside>
+      </header>
 
-      <div className="auth-form-col">
-        <form className="auth-box" onSubmit={handleSubmit}>
-          <div className="auth-mobile-head">
-            <div className="auth-brand">
-              <span className="auth-brand-mark">
-                <LogoMark size={19} />
-              </span>
-              <span className="auth-brand-name">iychat</span>
+      <main className="auth-body">
+        <div className="auth-form-col">
+          <form onSubmit={handleSubmit}>
+            <h1 className="auth-heading">Create your account</h1>
+            <p className="auth-lead">
+              You&apos;ll pick a photo and a display name on the next step.
+            </p>
+
+            {error && <p className="auth-error">{error}</p>}
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="username">
+                Username
+              </label>
+              <input
+                id="username"
+                className="field"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                minLength={3}
+                maxLength={20}
+                autoComplete="username"
+                required
+              />
+            </div>
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="field"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className="field"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                autoComplete="new-password"
+                required
+              />
+              <p
+                className="profile-note"
+                style={{ textAlign: "left", marginTop: 6 }}
+              >
+                At least 6 characters.
+              </p>
             </div>
 
             <button
-              type="button"
-              className="icon-btn"
-              onClick={toggleTheme}
-              aria-label="Toggle dark mode"
+              className="btn btn-primary btn-block auth-submit"
+              type="submit"
+              disabled={submitting}
             >
-              <ThemeIcon size={18} />
+              {submitting ? "Creating account…" : "Create account"}
             </button>
-          </div>
 
-          <h1 className="auth-heading">Create your account</h1>
-          <p className="auth-lead">
-            You&apos;ll pick a photo and a display name on the next step.
-          </p>
-
-          {error && <p className="auth-error">{error}</p>}
-
-          <div className="field-group">
-            <label className="field-label" htmlFor="username">
-              Username
-            </label>
-            <input
-              id="username"
-              className="field"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              minLength={3}
-              maxLength={20}
-              autoComplete="username"
-              required
-            />
-          </div>
-
-          <div className="field-group">
-            <label className="field-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className="field"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
-
-          <div className="field-group">
-            <label className="field-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="field"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              autoComplete="new-password"
-              required
-            />
-            <p className="profile-note" style={{ textAlign: "left", marginTop: 6 }}>
-              At least 6 characters.
+            <p className="auth-foot">
+              Already have an account? <Link href="/login">Sign in</Link>
             </p>
-          </div>
+          </form>
+        </div>
 
-          <button
-            className="btn btn-primary btn-block auth-submit"
-            type="submit"
-            disabled={submitting}
-          >
-            {submitting ? "Creating account…" : "Create account"}
-          </button>
-
-          <p className="auth-foot">
-            Already have an account? <Link href="/login">Sign in</Link>
-          </p>
-        </form>
-      </div>
-
-      <AuthArt />
+        <AuthArt />
+      </main>
     </div>
   );
 }

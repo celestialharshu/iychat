@@ -928,78 +928,112 @@ input {
 }
 
 /* ---------- sign in / sign up ----------
-   The page is built out of the app's own shell: the icon rail, then a panel
-   where the chat list would sit (that's the form), then the big panel where a
-   thread would sit (that's a live-looking conversation). Same gutters, same
-   rounded panels, same colours as /chat. The column widths are the app's, so
-   this is never a 50/50 split.
+   Deliberately nothing like /chat. No icon rail, no floating panels, no grey
+   gutters — one clean open page, so it reads as the front door rather than the
+   app you're already inside. Form on the left, illustration on the right.
    ---------------------------------------- */
 
-.auth-shell {
-  display: flex;
+.auth-page {
   min-height: 100dvh;
-  background: var(--app-bg);
-  padding: 8px 8px 8px 0;
-  gap: 8px;
-}
-
-/* the same 72px rail the app has: brand at the top, theme toggle at the bottom */
-.auth-rail {
-  width: 72px;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 14px 0;
-}
-
-/* sits where the chat list sits */
-.auth-form-col {
-  flex: 0 0 420px;
-  display: flex;
   background: var(--panel);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 40px 32px;
-  overflow-y: auto;
 }
 
-/* margin:auto rather than align-items:center — if the form ever grows taller
-   than the screen this still lets you scroll to the top of it */
-.auth-box {
-  width: 100%;
-  margin: auto;
-  text-align: left;
+.auth-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 26px 48px;
 }
 
-/* the illustration panel, where an open conversation would sit */
-.auth-aside {
-  flex: 1;
-  min-width: 0;
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--panel);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 56px;
-  overflow: hidden;
-  user-select: none;
+  flex-shrink: 0;
 }
 
-.auth-aside-inner {
+.auth-brand-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* max-width + auto margins keep it from stretching thin on a big monitor */
+.auth-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 72px;
   width: 100%;
-  max-width: 520px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 48px 56px;
 }
 
-.auth-aside-art {
+/* a fixed column, so the split is never 50/50 no matter the screen */
+.auth-form-col {
+  flex: 0 0 380px;
+}
+
+.auth-heading {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.auth-lead {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  margin-bottom: 30px;
+}
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.auth-submit {
+  height: 48px;
+  margin-top: 10px;
+}
+
+.auth-art-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-art {
   display: block;
   width: 100%;
+  max-width: 560px;
   height: auto;
-  margin-bottom: 44px;
 }
 
-/* the three dots in the illustration reuse the typing animation from the app */
+/* the three dots in the illustration reuse the app's typing animation */
 .art-dot {
   animation: bounce 1.3s infinite ease-in-out;
 }
@@ -1012,10 +1046,14 @@ input {
   animation-delay: 0.32s;
 }
 
-/* min-height reserves room for two lines, so nothing below jumps around as
-   the sentence types itself out and then deletes again */
+/* min-height reserves room for two lines, so nothing shifts as the sentence
+   types itself out and then deletes again */
 .auth-typed {
-  font-size: 23px;
+  width: 100%;
+  max-width: 560px;
+  margin-top: 34px;
+  text-align: center;
+  font-size: 21px;
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: -0.01em;
@@ -1038,97 +1076,25 @@ input {
   }
 }
 
-/* the brand + theme toggle only appear here once the rail is gone */
-.auth-mobile-head {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 36px;
-}
-
-.auth-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.auth-brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--blue);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.auth-brand-name {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.auth-heading {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.auth-lead {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-top: 6px;
-  margin-bottom: 28px;
-}
-
-.field-group {
-  margin-bottom: 16px;
-}
-
-.field-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.auth-submit {
-  height: 46px;
-  margin-top: 8px;
-}
-
-.auth-box .auth-foot {
-  margin-top: 22px;
-}
-
-/* no room for three columns on a laptop this small, so the form takes the lot
-   and the brand + toggle move inside it */
+/* no room for the illustration on a laptop this small — the form takes over */
 @media (max-width: 1000px) {
-  .auth-shell {
-    padding: 0;
-    gap: 0;
+  .auth-topbar {
+    padding: 20px 24px;
   }
 
-  .auth-rail,
-  .auth-aside {
+  .auth-body {
+    gap: 0;
+    padding: 0 24px 40px;
+  }
+
+  .auth-art-col {
     display: none;
   }
 
   .auth-form-col {
     flex: 1;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 32px 24px;
-  }
-
-  .auth-box {
     max-width: 380px;
-  }
-
-  .auth-mobile-head {
-    display: flex;
+    margin: 0 auto;
   }
 }
 

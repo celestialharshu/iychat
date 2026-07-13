@@ -37,95 +37,80 @@ export default function LoginPage() {
   const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
   return (
-    <div className="auth-shell">
-      {/* the app's own rail — brand up top, theme toggle down at the bottom */}
-      <aside className="auth-rail">
-        <div className="logo-mark">
-          <LogoMark size={22} />
+    <div className="auth-page">
+      <header className="auth-topbar">
+        <div className="auth-brand">
+          <span className="auth-brand-mark">
+            <LogoMark size={19} />
+          </span>
+          <span className="auth-brand-name">iychat</span>
         </div>
 
-        <div className="rail-spacer" />
-
         <button
-          className="rail-btn"
+          className="icon-btn"
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
         >
-          <ThemeIcon />
+          <ThemeIcon size={18} />
         </button>
-      </aside>
+      </header>
 
-      <div className="auth-form-col">
-        <form className="auth-box" onSubmit={handleSubmit}>
-          {/* the rail is hidden on small screens, so the brand comes back here */}
-          <div className="auth-mobile-head">
-            <div className="auth-brand">
-              <span className="auth-brand-mark">
-                <LogoMark size={19} />
-              </span>
-              <span className="auth-brand-name">iychat</span>
+      <main className="auth-body">
+        <div className="auth-form-col">
+          <form onSubmit={handleSubmit}>
+            <h1 className="auth-heading">Sign in</h1>
+            <p className="auth-lead">
+              Welcome back. Your chats are where you left them.
+            </p>
+
+            {error && <p className="auth-error">{error}</p>}
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="field"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                className="field"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
             </div>
 
             <button
-              type="button"
-              className="icon-btn"
-              onClick={toggleTheme}
-              aria-label="Toggle dark mode"
+              className="btn btn-primary btn-block auth-submit"
+              type="submit"
+              disabled={submitting}
             >
-              <ThemeIcon size={18} />
+              {submitting ? "Signing in…" : "Sign in"}
             </button>
-          </div>
 
-          <h1 className="auth-heading">Sign in</h1>
-          <p className="auth-lead">Welcome back. Your chats are where you left them.</p>
+            <p className="auth-foot">
+              Don&apos;t have an account? <Link href="/register">Create one</Link>
+            </p>
+          </form>
+        </div>
 
-          {error && <p className="auth-error">{error}</p>}
-
-          <div className="field-group">
-            <label className="field-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className="field"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
-
-          <div className="field-group">
-            <label className="field-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className="field"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-
-          <button
-            className="btn btn-primary btn-block auth-submit"
-            type="submit"
-            disabled={submitting}
-          >
-            {submitting ? "Signing in…" : "Sign in"}
-          </button>
-
-          <p className="auth-foot">
-            Don&apos;t have an account? <Link href="/register">Create one</Link>
-          </p>
-        </form>
-      </div>
-
-      <AuthArt />
+        <AuthArt />
+      </main>
     </div>
   );
 }
