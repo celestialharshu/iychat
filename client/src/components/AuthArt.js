@@ -1,6 +1,5 @@
 "use client";
 
-import Typewriter from "./Typewriter";
 
 // The illustration on the right of the sign in / sign up pages.
 //
