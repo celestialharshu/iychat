@@ -1060,22 +1060,6 @@ input {
   color: var(--text-muted);
 }
 
-.caret {
-  display: inline-block;
-  width: 3px;
-  height: 0.95em;
-  margin-left: 4px;
-  vertical-align: -0.1em;
-  background: var(--blue);
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 /* no room for two tones on a laptop this small — the form takes the page */
 @media (max-width: 1000px) {
   .auth-art-side {

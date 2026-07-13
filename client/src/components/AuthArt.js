@@ -1,6 +1,5 @@
 "use client";
 
-
 // The illustration on the right of the sign in / sign up pages.
 //
 // A chat window drawn as flat bars, with two labelled carets in it — one for
@@ -8,7 +7,7 @@
 // Everything is a flat fill from a CSS variable, so it repaints itself in dark
 // mode. No gradients.
 
-const HEADLINES = ["Type. Send. Seen.", "Live, both ways.", "Follow. Then talk."];
+const HEADLINE = "Type. Send. Seen.";
 
 const THEM = "#6b4dff"; // their accent, same as their avatar in the app
 
@@ -114,9 +113,7 @@ export default function AuthArt() {
         </g>
       </svg>
 
-      <h2 className="auth-headline">
-        <Typewriter phrases={HEADLINES} />
-      </h2>
+      <h2 className="auth-headline">{HEADLINE}</h2>
 
       <p className="auth-para">
         Follow someone, open a thread, and your messages land the moment you send
