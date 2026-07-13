@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import AuthArt from "@/components/AuthArt";
 import { LogoMark, MoonIcon, SunIcon } from "@/components/Icons";
 
 export default function RegisterPage() {
@@ -29,78 +30,123 @@ export default function RegisterPage() {
       router.push("/welcome");
     } catch (err) {
       setError(err.response?.data?.message || "We couldn't create that account.");
-    } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="auth">
-      <button
-        className="icon-btn"
-        onClick={toggleTheme}
-        aria-label="Toggle dark mode"
-        style={{ position: "absolute", top: 20, right: 20 }}
-      >
-        {theme === "light" ? <MoonIcon size={18} /> : <SunIcon size={18} />}
-      </button>
+  const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <div className="auth-logo">
-          <LogoMark size={30} />
+  return (
+    <div className="auth-shell">
+      <aside className="auth-rail">
+        <div className="logo-mark">
+          <LogoMark size={22} />
         </div>
 
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-sub">It takes about ten seconds.</p>
-
-        {error && <p className="auth-error">{error}</p>}
-
-        <input
-          className="field"
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          minLength={3}
-          maxLength={20}
-          autoComplete="username"
-          required
-        />
-
-        <input
-          className="field"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
-
-        <input
-          className="field"
-          type="password"
-          placeholder="Password (at least 6 characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={6}
-          autoComplete="new-password"
-          required
-        />
+        <div className="rail-spacer" />
 
         <button
-          className="btn btn-primary btn-block"
-          type="submit"
-          disabled={submitting}
-          style={{ height: 46, marginTop: 6 }}
+          className="rail-btn"
+          onClick={toggleTheme}
+          aria-label="Toggle dark mode"
         >
-          {submitting ? "Creating account…" : "Sign up"}
+          <ThemeIcon />
         </button>
+      </aside>
 
-        <p className="auth-foot">
-          Already have an account? <Link href="/login">Log in</Link>
-        </p>
-      </form>
+      <div className="auth-form-col">
+        <form className="auth-box" onSubmit={handleSubmit}>
+          <div className="auth-mobile-head">
+            <div className="auth-brand">
+              <span className="auth-brand-mark">
+                <LogoMark size={19} />
+              </span>
+              <span className="auth-brand-name">iychat</span>
+            </div>
+
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+            >
+              <ThemeIcon size={18} />
+            </button>
+          </div>
+
+          <h1 className="auth-heading">Create your account</h1>
+          <p className="auth-lead">
+            You&apos;ll pick a photo and a display name on the next step.
+          </p>
+
+          {error && <p className="auth-error">{error}</p>}
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="username">
+              Username
+            </label>
+            <input
+              id="username"
+              className="field"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              minLength={3}
+              maxLength={20}
+              autoComplete="username"
+              required
+            />
+          </div>
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              className="field"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              autoComplete="new-password"
+              required
+            />
+            <p className="profile-note" style={{ textAlign: "left", marginTop: 6 }}>
+              At least 6 characters.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-primary btn-block auth-submit"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Creating account…" : "Create account"}
+          </button>
+
+          <p className="auth-foot">
+            Already have an account? <Link href="/login">Sign in</Link>
+          </p>
+        </form>
+      </div>
+
+      <AuthArt />
     </div>
   );
 }

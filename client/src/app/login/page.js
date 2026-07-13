@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import AuthArt from "@/components/AuthArt";
 import { LogoMark, MoonIcon, SunIcon } from "@/components/Icons";
 
 export default function LoginPage() {
@@ -26,66 +27,105 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/chat");
     } catch (err) {
-      setError(err.response?.data?.message || "That email and password don't match.");
-    } finally {
+      setError(
+        err.response?.data?.message || "That email and password don't match."
+      );
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="auth">
-      <button
-        className="icon-btn"
-        onClick={toggleTheme}
-        aria-label="Toggle dark mode"
-        style={{ position: "absolute", top: 20, right: 20 }}
-      >
-        {theme === "light" ? <MoonIcon size={18} /> : <SunIcon size={18} />}
-      </button>
+  const ThemeIcon = theme === "light" ? MoonIcon : SunIcon;
 
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <div className="auth-logo">
-          <LogoMark size={30} />
+  return (
+    <div className="auth-shell">
+      {/* the app's own rail — brand up top, theme toggle down at the bottom */}
+      <aside className="auth-rail">
+        <div className="logo-mark">
+          <LogoMark size={22} />
         </div>
 
-        <h1 className="auth-title">Log in to iychat</h1>
-        <p className="auth-sub">Pick up right where you left off.</p>
-
-        {error && <p className="auth-error">{error}</p>}
-
-        <input
-          className="field"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
-
-        <input
-          className="field"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
+        <div className="rail-spacer" />
 
         <button
-          className="btn btn-primary btn-block"
-          type="submit"
-          disabled={submitting}
-          style={{ height: 46, marginTop: 6 }}
+          className="rail-btn"
+          onClick={toggleTheme}
+          aria-label="Toggle dark mode"
         >
-          {submitting ? "Logging in…" : "Log in"}
+          <ThemeIcon />
         </button>
+      </aside>
 
-        <p className="auth-foot">
-          New here? <Link href="/register">Create an account</Link>
-        </p>
-      </form>
+      <div className="auth-form-col">
+        <form className="auth-box" onSubmit={handleSubmit}>
+          {/* the rail is hidden on small screens, so the brand comes back here */}
+          <div className="auth-mobile-head">
+            <div className="auth-brand">
+              <span className="auth-brand-mark">
+                <LogoMark size={19} />
+              </span>
+              <span className="auth-brand-name">iychat</span>
+            </div>
+
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+            >
+              <ThemeIcon size={18} />
+            </button>
+          </div>
+
+          <h1 className="auth-heading">Sign in</h1>
+          <p className="auth-lead">Welcome back. Your chats are where you left them.</p>
+
+          {error && <p className="auth-error">{error}</p>}
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          <div className="field-group">
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              className="field"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <button
+            className="btn btn-primary btn-block auth-submit"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+
+          <p className="auth-foot">
+            Don&apos;t have an account? <Link href="/register">Create one</Link>
+          </p>
+        </form>
+      </div>
+
+      <AuthArt />
     </div>
   );
 }
