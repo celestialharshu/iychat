@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+const { default: mongoose } = require("mongoose");
 
 const cookieOptions = {
   httpOnly: true,
@@ -117,4 +118,4 @@ const getMe = async (req, res) => {
   res.status(200).json(req.user);
 };
 
-module.exports = { registerUser, loginUser, logoutUser, getMe };
+module.exports = { registerUser, loginUser, logoutUser, getMe }; 
